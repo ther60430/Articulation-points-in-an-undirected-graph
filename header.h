@@ -1,14 +1,17 @@
 #pragma once
 #include<iostream>
 using namespace std;
-typedef struct EdgeNode
+class EdgeNode
 {
+public:
 	int adjvex;
 	int weight;
-	struct EdgeNode* next;
+	EdgeNode* next;
+	EdgeNode(int adjvex, int weight) :adjvex(adjvex), weight(weight), next(nullptr) {}
 };
-typedef struct vertex
+class vertex
 {
+public:
 	int data;
 	EdgeNode* firstnode;
 };
