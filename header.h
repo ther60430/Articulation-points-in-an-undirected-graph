@@ -4,7 +4,8 @@ using namespace std;
 class EdgeNode
 {
 public:
-	int adjvex,adasfasfas;
+	int adjvex,ad;
+	int degree;
 };
 class vertex
 {
