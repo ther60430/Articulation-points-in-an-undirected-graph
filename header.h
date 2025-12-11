@@ -5,11 +5,6 @@ class EdgeNode
 {
 public:
 	int adjvex,adasfasfas;
-	int weight;
-	struct EdgeNode* next;
-	EdgeNode(int adjvex, int weight)
-	{
-	}
 };
 class vertex
 {
