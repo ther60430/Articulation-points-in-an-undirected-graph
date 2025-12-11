@@ -1,20 +1,33 @@
 #pragma once
 #include<iostream>
 using namespace std;
-typedef struct EdgeNode
+class EdgeNode
 {
+public:
 	int adjvex;
 	int weight;
 	struct EdgeNode* next;
+	EdgeNode(int adjvex, int weight)
+	{
+			this->adjvex = adjvex;
+		this->weight = weight;
+		this->next =nullptr;
+	}
 };
-typedef struct vertex
+class vertex
 {
+public:
 	int data;
 	EdgeNode* firstnode;
+	vertex(int data)
+	{
+			this->data = data;
+			this->firstnode = nullptr;
+	}
 };
 class adj_graph
 {
 public:
-	int vexnum, edgenum;
 	vertex* adjlist;
+	adj_graph();
 };
