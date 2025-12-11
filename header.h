@@ -4,14 +4,11 @@ using namespace std;
 class EdgeNode
 {
 public:
-	int adjvex;
+	int adjvex,adasfasfas;
 	int weight;
 	struct EdgeNode* next;
 	EdgeNode(int adjvex, int weight)
 	{
-			this->adjvex = adjvex;
-		this->weight = weight;
-		this->next =nullptr;
 	}
 };
 class vertex
