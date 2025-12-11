@@ -1,5 +1,5 @@
 #include"header.h"
 int main()
 {
-	cout << "hello world";
+	cout << "hello world.";
 }
