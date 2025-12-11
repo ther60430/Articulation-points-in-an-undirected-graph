@@ -5,7 +5,7 @@ class EdgeNode
 {
 public:
 	int adjvex,ad;
-	int degree;
+	int degree,bvj;
 };
 class vertex
 {
