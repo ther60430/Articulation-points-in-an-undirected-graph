@@ -4,8 +4,15 @@ using namespace std;
 class EdgeNode
 {
 public:
+
 	int adjvex,ad;
 	int degree,bvj;
+
+	int adjvex;
+	int weight;
+	EdgeNode* next;
+	EdgeNode(int adjvex, int weight) :adjvex(adjvex), weight(weight), next(nullptr) {}
+
 };
 class vertex
 {
