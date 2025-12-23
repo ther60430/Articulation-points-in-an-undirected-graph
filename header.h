@@ -117,6 +117,7 @@ public:
 		else
 		{
 			EdgeNode* cur = adjlist[src].firstnode;
+			EdgeNode* cur2 = adjlist[dest].firstnode;
 			while (cur != nullptr)
 			{
 				if(cur->adjvex==dest)
@@ -124,6 +125,17 @@ public:
 					if (weight < cur->weight)
 					{
 						cur->weight = weight;
+					}
+					break;
+				}
+			}
+			while (cur2 != nullptr)
+			{
+				if (cur2->adjvex == src)
+				{
+					if (weight < cur2->weight)
+					{
+						cur2->weight = weight;
 					}
 					break;
 				}
@@ -240,5 +252,4 @@ public:
 		visited = newvisited;
 		vertexnum = newvertexnum;
 	}
-	adj_graph* transform_cut_vertex(Vertex* list);
 };
