@@ -300,7 +300,6 @@ public:
 		}
 		return original;
 	}
-	adj_graph& TCV_ReconnectEdge(adj_graph& original, int* cut_vertext, int cut_vertex_number);
 	adj_graph& transform_cut_vertex(adj_graph& original, bool* list, int method)
 	{
 		int count = 0;
