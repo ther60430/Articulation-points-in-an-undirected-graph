@@ -117,6 +117,7 @@ public:
 		else
 		{
 			EdgeNode* cur = adjlist[src].firstnode;
+			EdgeNode* cur2 = adjlist[dest].firstnode;
 			while (cur != nullptr)
 			{
 				if(cur->adjvex==dest)
@@ -124,6 +125,17 @@ public:
 					if (weight < cur->weight)
 					{
 						cur->weight = weight;
+					}
+					break;
+				}
+			}
+			while (cur2 != nullptr)
+			{
+				if (cur2->adjvex == src)
+				{
+					if (weight < cur2->weight)
+					{
+						cur2->weight = weight;
 					}
 					break;
 				}
@@ -240,6 +252,7 @@ public:
 		visited = newvisited;
 		vertexnum = newvertexnum;
 	}
+
 	adj_graph& TCV_AddRedundantEdges(adj_graph& original, int* cut_vertex,int cut_vertex_number)
 	{
 		for (int c=0;c<cut_vertex_number;c++)
@@ -337,5 +350,5 @@ public:
 		delete[] cut_vertex;
 		return original;
 	}
-	
+
 };
