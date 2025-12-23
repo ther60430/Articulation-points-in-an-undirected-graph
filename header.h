@@ -240,4 +240,5 @@ public:
 		visited = newvisited;
 		vertexnum = newvertexnum;
 	}
+	adj_graph* transform_cut_vertex(Vertex* list);
 };
