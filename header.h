@@ -1,6 +1,27 @@
 #pragma once
 #include<iostream>
+// Windows 
+#include <windows.h>
+#include <mmsystem.h>             //外部媒体库
+#pragma comment(lib, "winmm.lib")  
+// C ++运行文件
+#include <malloc.h>
+#include <memory.h>
+#include <string.h>
+#include <graphics.h>
+#include <conio.h>
+#include <random>
+#include <chrono>
+#include <ctime>
+#include <string>
+#include <iomanip>
+#include <thread>
+#include <algorithm>
+#include<ostream>
+#include <fstream>
+#define PI 3.14159
 using namespace std;
+using namespace std::chrono;
 class EdgeNode
 {
 public:
@@ -252,7 +273,6 @@ public:
 		visited = newvisited;
 		vertexnum = newvertexnum;
 	}
-
 	adj_graph& TCV_AddRedundantEdges(adj_graph& original, int* cut_vertex,int cut_vertex_number)
 	{
 		for (int c=0;c<cut_vertex_number;c++)
@@ -350,5 +370,9 @@ public:
 		delete[] cut_vertex;
 		return original;
 	}
-
+};
+class GraphVisualizer
+{
+public:
+	adj_graph* graph;
 };
