@@ -795,16 +795,17 @@ adj_graph* createGraphbyhand()
     adj_graph* graph;
     int num;
 	cout << "input the vertex number:" << endl;
-    cin >> num;
-    if (num == 0)
+    while (true)
     {
-        graph = new adj_graph(0);
-        return graph;
-    }
-    while (!num)
-    {
-        cout << "invalid input,please input again£º" << endl;
         cin >> num;
+        if (!num)
+        {
+            cout << "invalid input, please input again" << endl;
+            cin.clear();
+            cin.ignore(25565,'\n');
+        }
+        else if (num > 0)
+            break;
     }
     graph = new adj_graph(num);
     cout << "input the edge(-1 -1 is end):" << endl;
@@ -817,6 +818,8 @@ adj_graph* createGraphbyhand()
         if (src < 0 || dest < 0 || src >= num || dest >= num)
         {
             cout << "invalid input, please input again" << endl;
+            cin.clear();
+            cin.ignore(25565, '\n');
             continue;
         }
         graph->add_edge(src, dest);
@@ -947,7 +950,7 @@ adj_graph* InitializeGraph(int method)
         break;
     }
     default:
-        graph = nullptr;
+        cerr << "please input integer range from 1 to 3\n";
         break;
     }
     return graph;
