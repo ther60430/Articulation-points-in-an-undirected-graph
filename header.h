@@ -866,3 +866,21 @@ adj_graph* createExampleGraph() {
     return graph;
 }
 
+/*adj_graph* createRandomGraph() {
+    adj_graph* graph = new adj_graph(8);
+
+    graph->add_edge(0, 1, 4);
+    graph->add_edge(0, 2, 3);
+    graph->add_edge(1, 2, 5);
+    graph->add_edge(1, 3, 2);
+    graph->add_edge(2, 3, 7);
+    graph->add_edge(3, 4, 1);
+    graph->add_edge(4, 5, 6);
+    graph->add_edge(4, 6, 3);
+    graph->add_edge(5, 6, 4);
+    graph->add_edge(6, 7, 2);
+    graph->add_edge(3, 7, 8);
+
+    return graph;
+}*/
+
