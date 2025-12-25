@@ -1,29 +1,4 @@
 #pragma once
-<<<<<<< HEAD
-#include<iostream>
-// Windows 
-#include <windows.h>
-#include <mmsystem.h>             //外部媒体库
-#pragma comment(lib, "winmm.lib")  
-// C ++运行文件
-#include <malloc.h>
-#include <memory.h>
-#include <string.h>
-#include <graphics.h>
-#include <conio.h>
-#include <random>
-#include <chrono>
-#include <ctime>
-#include <string>
-#include <iomanip>
-#include <thread>
-#include <algorithm>
-#include<ostream>
-#include <fstream>
-#define PI 3.14159
-using namespace std;
-using namespace std::chrono;
-=======
 
 #include <graphics.h>
 #include <conio.h>
@@ -48,14 +23,12 @@ const COLORREF BUTTON_HOVER_COLOR = RGB(65, 105, 225);
 const COLORREF BUTTON_DISABLED_COLOR = RGB(180, 180, 180);
 const COLORREF TRANSFORM_NODE_COLOR = RGB(50, 205, 50);
 
->>>>>>> 8c539fcf625c1adf861dbd9ca31815d9bb2a8b75
 class EdgeNode
 {
 public:
     int adjvex;                              //邻接点
-    int weight;                              //权值
     EdgeNode* next;
-    EdgeNode(int adjvex, int weight) :adjvex(adjvex), weight(weight), next(nullptr) {}
+    EdgeNode(int adjvex) :adjvex(adjvex), next(nullptr) {}
 
 };
 class Vertex
@@ -83,11 +56,11 @@ public:
         }
         firstnode = nullptr;
         if (other.firstnode == nullptr) return;
-        firstnode = new EdgeNode(other.firstnode->adjvex, other.firstnode->weight);
+        firstnode = new EdgeNode(other.firstnode->adjvex);
         EdgeNode* newCur = firstnode;
         EdgeNode* otherCur = other.firstnode->next;
         while (otherCur != nullptr) {
-            newCur->next = new EdgeNode(otherCur->adjvex, otherCur->weight);
+            newCur->next = new EdgeNode(otherCur->adjvex);
             newCur = newCur->next;
             otherCur = otherCur->next;
         }
@@ -96,314 +69,6 @@ public:
 class adj_graph
 {
 public:
-<<<<<<< HEAD
-	int vertexnum;
-	Vertex* adjlist;
-	int time;
-	int* dfn,*low,*parent;
-	bool* is_cut_vertex,*visited;
-	adj_graph(int num) 
-	{
-		if (num < 0)
-		{
-			cout<< "Vertex number must be non-negative.";
-			return;
-		}
-		else
-		{
-			time = 0;
-			vertexnum = num;
-			adjlist = new Vertex[vertexnum];  
-			dfn = new int[vertexnum];
-			low = new int[vertexnum];
-			parent = new int[vertexnum];
-			is_cut_vertex = new bool[vertexnum];
-			visited = new bool[vertexnum];
-			for (int i = 0; i < vertexnum; i++)
-			{
-				dfn[i] = 0;
-				low[i] = 0;
-				parent[i] = -1;
-				is_cut_vertex[i] = false;
-				visited[i] = false;
-			}
-		}
-	}
-	~adj_graph()
-	{
-		delete[] adjlist;
-		delete[] dfn;
-		delete[] low;
-		delete[] is_cut_vertex;
-		delete[] visited;
-		delete[] parent;
-	}
-	bool is_exist(int src, int dest)
-	{
-		EdgeNode* cur = adjlist[src].firstnode;
-		while (cur != nullptr)
-		{
-			if (cur->adjvex == dest)
-				return true;
-			cur = cur->next;
-		}
-		return false;
-	}
-	void add_edge(int src, int dest,int weight)
-	{
-		if (src < 0 || dest < 0||weight<0||src>vertexnum||dest>vertexnum)
-		{
-			return;
-		}
-		else if(!is_exist(src,dest))
-		{
-			EdgeNode* newnode = new EdgeNode(dest, weight);
-			newnode->next = adjlist[src].firstnode;
-			adjlist[src].firstnode = newnode;
-			newnode = new EdgeNode(src, weight);
-			newnode->next = adjlist[dest].firstnode;
-		}
-		else
-		{
-			EdgeNode* cur = adjlist[src].firstnode;
-			EdgeNode* cur2 = adjlist[dest].firstnode;
-			while (cur != nullptr)
-			{
-				if(cur->adjvex==dest)
-				{
-					if (weight < cur->weight)
-					{
-						cur->weight = weight;
-					}
-					break;
-				}
-			}
-			while (cur2 != nullptr)
-			{
-				if (cur2->adjvex == src)
-				{
-					if (weight < cur2->weight)
-					{
-						cur2->weight = weight;
-					}
-					break;
-				}
-			}
-		}
-	}
-	void reset_visited()
-	{
-		for (int i = 0; i < vertexnum; i++)
-			visited[i] = false;
-	}
-	void DFS_cut_vertex(int u)
-	{
-		// 边界检查
-		if (u < 0 || u >= vertexnum || adjlist == nullptr) 
-		{
-			return;
-		}
-		int children=0;
-		dfn[u] = low[u] = ++time;
-		visited[u] = true;
-		EdgeNode* cur = adjlist[u].firstnode;
-		while (cur)
-		{
-			int v = cur->adjvex;
-			if (!visited[v])
-			{
-				children++;
-				parent[v] = u;
-				DFS_cut_vertex(v);
-				low[u] = min(low[u], low[v]);
-				if(low[v] >= dfn[u]&&parent[u]!=-1)                 //非根节点且满足割点条件
-				{
-					is_cut_vertex[u] = true;
-				}
-				if(children >1&&parent[u]==-1)                              //根节点且满足割点条件
-				{
-					is_cut_vertex[u] = true;
-				}
-			}
-			else if ( v != parent[u])                   //后向边
-			{
-				low[u] = min(low[u], dfn[v]);
-			}
-			cur = cur->next;
-		}
-	}
-	void find_cut_vertex()
-	{
-		if (vertexnum == 0 || adjlist == nullptr || is_cut_vertex == nullptr) 
-		{
-			return;
-		}
-		reset_visited();
-		time = 0;
-		for (int i = 0; i < vertexnum; i++)
-		{
-			is_cut_vertex[i] = false;
-		}
-		for (int i = 0; i < vertexnum; i++)
-		{
-			if (!visited[i])
-			{
-				DFS_cut_vertex(i);
-			}
-		}
-	}
-	void addvertex() {
-		// 初始化失败，直接返回
-		if (vertexnum < 0 || (vertexnum == 0 && !adjlist)) return;
-		int newvertexnum = vertexnum + 1;
-		// 分配新的动态数组
-		Vertex* newadjlist = new (nothrow) Vertex[newvertexnum];
-		int* newdfn = new (nothrow) int[newvertexnum];
-		int* newlow = new (nothrow) int[newvertexnum];
-		int* newparent = new (nothrow) int[newvertexnum];
-		bool* newis_cut_vertex = new (nothrow) bool[newvertexnum];
-		bool* newvisited = new (nothrow) bool[newvertexnum];
-		// 检查内存分配是否成功
-		if (!newadjlist || !newdfn || !newlow || !newparent || !newis_cut_vertex || !newvisited) {
-			delete[] newadjlist;
-			delete[] newdfn;
-			delete[] newlow;
-			delete[] newparent;
-			delete[] newis_cut_vertex;
-			delete[] newvisited;
-			return;
-		}
-		for (int i = 0; i < vertexnum; i++) {
-			// 深拷贝Vertex的邻接边
-			newadjlist[i].deepCopy(adjlist[i]);
-			newdfn[i] = dfn[i];
-			newlow[i] = low[i];
-			newparent[i] = parent[i];
-			newis_cut_vertex[i] = is_cut_vertex[i];
-			newvisited[i] = visited[i];
-		}
-		newdfn[newvertexnum - 1] = 0;
-		newlow[newvertexnum - 1] = 0;
-		newparent[newvertexnum - 1] = -1;
-		newis_cut_vertex[newvertexnum - 1] = false;
-		newvisited[newvertexnum - 1] = false;
-		delete[] adjlist;
-		delete[] dfn;
-		delete[] low;
-		delete[] parent;
-		delete[] is_cut_vertex;
-		delete[] visited;
-		adjlist = newadjlist;
-		dfn = newdfn;
-		low = newlow;
-		parent = newparent;
-		is_cut_vertex = newis_cut_vertex;
-		visited = newvisited;
-		vertexnum = newvertexnum;
-	}
-	adj_graph& TCV_AddRedundantEdges(adj_graph& original, int* cut_vertex,int cut_vertex_number)
-	{
-		for (int c=0;c<cut_vertex_number;c++)
-		{
-			int count = 0;
-			EdgeNode* edge = original.adjlist[cut_vertex[c]].firstnode;
-			while (edge != nullptr)
-			{
-				count++;
-				edge = edge->next;
-			}
-			int* adj_vertex = new int[count];
-			int k = 0;
-			edge = original.adjlist[cut_vertex[c]].firstnode;
-			while (edge != nullptr)
-			{
-				adj_vertex[k] = edge->adjvex;
-				k++;
-				edge = edge->next;
-			}
-			for (int i = 0;i < count-1;i++)
-			{
-				original.add_edge(adj_vertex[i], adj_vertex[i+1], 0);
-			}
-			original.add_edge(adj_vertex[count-1], adj_vertex[0], 0);
-			delete[] adj_vertex;
-		}
-		return original;
-	}
-	adj_graph& TCV_CopyNode(adj_graph& original, int* cut_vertex, int cut_vertex_number)
-	{
-		for (int c = 0;c < cut_vertex_number;c++)
-		{
-			int count = 0;
-			EdgeNode* edge = original.adjlist[cut_vertex[c]].firstnode;
-			while (edge != nullptr)
-			{
-				count++;
-				edge = edge->next;
-			}
-			int* adj_vertex = new int[count];
-			int k = 0;
-			edge = original.adjlist[cut_vertex[c]].firstnode;
-			while (edge != nullptr)
-			{
-				adj_vertex[k] = edge->adjvex;
-				k++;
-				edge = edge->next;
-			}
-			original.addvertex();
-			int new_vertex = original.vertexnum - 1;
-			original.add_edge(cut_vertex[c], new_vertex, 0);
-			for (int i = 0;i < count;i++)
-			{
-				original.add_edge(adj_vertex[i], new_vertex, 0);
-			}
-			delete[] adj_vertex;
-		}
-		return original;
-	}
-	adj_graph& transform_cut_vertex(adj_graph& original, bool* list, int method)
-	{
-		int count = 0;
-		for (int i=0;i<original.vertexnum;i++)
-		{
-			if (list[i] == true)
-				count++;
-		}
-		int* cut_vertex = new int[count];
-		int j = 0;
-		for (int i = 0;i < original.vertexnum;i++)
-		{
-			if (list[i] == true)
-			{
-				cut_vertex[j] = i;
-				j++;
-			}
-		}
-		if (list == nullptr)return original;
-		switch (method)
-		{
-		case 0:
-		{
-			original= TCV_AddRedundantEdges(original, cut_vertex, count);
-			break;
-		}
-		case 1:
-		{
-			original=TCV_CopyNode(original,cut_vertex,count);
-			break;
-		}
-		default:
-			break;
-		}
-		delete[] cut_vertex;
-		return original;
-	}
-};
-class GraphVisualizer
-{
-public:
-	adj_graph* graph;
-=======
     int vertexnum;
     Vertex* adjlist;
     int time;
@@ -482,55 +147,26 @@ public:
         return false;
     }
 
-    void add_edge(int src, int dest, int weight)
+    void add_edge(int src, int dest)
     {
-        if (src < 0 || dest < 0 || weight < 0 || src >= vertexnum || dest >= vertexnum)
+        if (src < 0 || dest < 0 || src >= vertexnum || dest >= vertexnum)
         {
             return;
         }
         else if (!is_exist(src, dest))
         {
             // 添加src->dest的边
-            EdgeNode* newnode = new EdgeNode(dest, weight);
+            EdgeNode* newnode = new EdgeNode(dest);
             newnode->next = adjlist[src].firstnode;
             adjlist[src].firstnode = newnode;
-
             // 添加dest->src的边（无向图）
-            newnode = new EdgeNode(src, weight);
+            newnode = new EdgeNode(src);
             newnode->next = adjlist[dest].firstnode;
             adjlist[dest].firstnode = newnode;
         }
         else
         {
-            // 如果边已存在，更新权重为更小的值
-            EdgeNode* cur = adjlist[src].firstnode;
-            while (cur != nullptr)
-            {
-                if (cur->adjvex == dest)
-                {
-                    if (weight < cur->weight)
-                    {
-                        cur->weight = weight;
-                    }
-                    break;
-                }
-                cur = cur->next;
-            }
-
-            // 更新反向边
-            cur = adjlist[dest].firstnode;
-            while (cur != nullptr)
-            {
-                if (cur->adjvex == src)
-                {
-                    if (weight < cur->weight)
-                    {
-                        cur->weight = weight;
-                    }
-                    break;
-                }
-                cur = cur->next;
-            }
+            return;
         }
     }
 
@@ -682,9 +318,9 @@ public:
             }
             for (int i = 0; i < count - 1; i++)
             {
-                add_edge(adj_vertex[i], adj_vertex[i + 1], 1);
+                add_edge(adj_vertex[i], adj_vertex[i + 1]);
             }
-            add_edge(adj_vertex[count - 1], adj_vertex[0], 1);
+            add_edge(adj_vertex[count - 1], adj_vertex[0]);
             delete[] adj_vertex;
         }
         return *this;
@@ -712,10 +348,10 @@ public:
             }
             addvertex();
             int new_vertex = vertexnum - 1;
-            add_edge(cut_vertex[c], new_vertex, 1);
+            add_edge(cut_vertex[c], new_vertex);
             for (int i = 0; i < count; i++)
             {
-                add_edge(adj_vertex[i], new_vertex, 1);
+                add_edge(adj_vertex[i], new_vertex);
             }
             delete[] adj_vertex;
         }
@@ -744,16 +380,16 @@ public:
 
         switch (method)
         {
-        case 0:
-            cout << "Applying redundant edges transformation..." << endl;
-            TCV_AddRedundantEdges(cut_vertex, count);
-            break;
-        case 1:
-            cout << "Applying node copy transformation..." << endl;
-            TCV_CopyNode(cut_vertex, count);
-            break;
-        default:
-            break;
+            case 0:
+                cout << "Applying redundant edges transformation..." << endl;
+                TCV_AddRedundantEdges(cut_vertex, count);
+                break;
+            case 1:
+                cout << "Applying node copy transformation..." << endl;
+                TCV_CopyNode(cut_vertex, count);
+                break;
+            default:
+                break;
         }
 
         delete[] cut_vertex;
@@ -763,7 +399,6 @@ public:
 
         return *this;
     }
->>>>>>> 8c539fcf625c1adf861dbd9ca31815d9bb2a8b75
 };
 
 wstring intToWString(int value) {
@@ -868,7 +503,7 @@ public:
         }
     }
 
-    void drawEdge(int src, int dest, int weight) {
+    void drawEdge(int src, int dest) {
         if (src >= nodePositions.size() || dest >= nodePositions.size()) return;
 
         POINT srcPos = nodePositions[src];
@@ -890,27 +525,6 @@ public:
         setlinecolor(EDGE_COLOR);
         setlinestyle(PS_SOLID, 2);
         line(startX, startY, endX, endY);
-
-        if (weight != 1) {
-            int midX = (startX + endX) / 2;
-            int midY = (startY + endY) / 2;
-
-            int offsetX = -dy * 20;
-            int offsetY = dx * 20;
-
-            setfillcolor(INFO_BG_COLOR);
-            setlinecolor(EDGE_COLOR);
-            fillcircle(midX + offsetX, midY + offsetY, 15);
-
-            settextcolor(TEXT_COLOR);
-            settextstyle(12, 0, _T("Arial"));
-
-            wstring weightStr = intToWString(weight);
-
-            int textWidth = textwidth(weightStr.c_str()) / 2;
-            int textHeight = textheight(weightStr.c_str()) / 2;
-            outtextxy(midX + offsetX - textWidth, midY + offsetY - textHeight, weightStr.c_str());
-        }
 
         setlinestyle(PS_SOLID, 1);
     }
@@ -1114,7 +728,7 @@ public:
             EdgeNode* cur = graph->adjlist[i].firstnode;
             while (cur != nullptr) {
                 if (i <= cur->adjvex) {
-                    drawEdge(i, cur->adjvex, cur->weight);
+                    drawEdge(i, cur->adjvex);
                 }
                 cur = cur->next;
             }
@@ -1183,21 +797,36 @@ public:
     }
 };
 
-adj_graph* createExampleGraph() {
-    adj_graph* graph = new adj_graph(8);
-
-    graph->add_edge(0, 1, 4);
-    graph->add_edge(0, 2, 3);
-    graph->add_edge(1, 2, 5);
-    graph->add_edge(1, 3, 2);
-    graph->add_edge(2, 3, 7);
-    graph->add_edge(3, 4, 1);
-    graph->add_edge(4, 5, 6);
-    graph->add_edge(4, 6, 3);
-    graph->add_edge(5, 6, 4);
-    graph->add_edge(6, 7, 2);
-    graph->add_edge(3, 7, 8);
-
+adj_graph* createExampleGraph() 
+{
+    adj_graph* graph;
+    int num;
+	cout << "请输入图的顶点数(0表示空图):" << endl;
+    cin >> num;
+    if (num == 0)
+    {
+		graph = new adj_graph(0);
+		return graph;
+    }
+    while (!num)
+    {
+        cout << "invalid input,please input again：" << endl;
+		cin >> num;
+    }
+    graph = new adj_graph(num);
+	cout << "input the edge(-1 -1 is end):" << endl;
+    while (true)
+    {
+        int src, dest;
+        cin >> src >> dest;
+        if (src == -1 && dest == -1)
+            break;
+        if (src < 0 || dest < 0 || src >= num || dest >= num)
+        {
+            cout << "非法输入,重新输入：" << endl;
+            continue;
+        }
+        graph->add_edge(src, dest);
+	}
     return graph;
 }
-
