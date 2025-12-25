@@ -1,5 +1,5 @@
 #pragma once
-
+#include<fstream>
 #include <graphics.h>
 #include <conio.h>
 #include <vector>
@@ -31,7 +31,6 @@ public:
     int adjvex;                              //邻接点
     EdgeNode* next;
     EdgeNode(int adjvex) :adjvex(adjvex), next(nullptr) {}
-
 };
 class Vertex
 {
@@ -84,6 +83,16 @@ public:
             cout << "Vertex number must be non-negative.";
             return;
         }
+        else if(num == 0)
+        {
+            vertexnum = 0;
+            adjlist = nullptr;
+            dfn = nullptr;
+            low = nullptr;
+            parent = nullptr;
+            is_cut_vertex = nullptr;
+            visited = nullptr;
+		}
         else
         {
             time = 0;
@@ -772,12 +781,38 @@ public:
         EndBatchDraw();
     }
 };
+int charToNum(char ch) 
+{
+    if (ch >= '0' && ch <= '9') 
+    {
+        return ch - '0';
+    }
+    return -1;
+}
 
-adj_graph* createExampleGraph()
+
+int getNextValidDigitInt(ifstream& infile) {
+    int ch; // 用int存储，避免EOF截断问题
+    while (true) {
+        // 先读取字符（返回int类型，直接接收EOF）
+        ch = infile.get();
+        // 校验流状态：读取失败/文件末尾，返回EOF
+        if (ch == EOF || !infile) {
+            return EOF;
+        }
+        // 校验是否为有效数字字符，有效则返回
+        if (charToNum(static_cast<char>(ch)) != -1) {
+            return ch;
+        }
+        // 非有效字符，继续循环跳过
+    }
+}
+
+adj_graph* createGraphbyhand() 
 {
     adj_graph* graph;
     int num;
-    cout << "input vertex number:" << endl;
+	cout << "input the vertex number:" << endl;
     cin >> num;
     if (num == 0)
     {
@@ -824,5 +859,55 @@ adj_graph* createRandomGraph()
         int ver2 = rand() % verNum;
         graph->add_edge(ver1, ver2);
     }
+    return graph;
+}
+
+adj_graph* createGraphfromfile(const string& filename)
+{
+    adj_graph* graph = nullptr;
+    ifstream infile(filename);
+    if (!infile.is_open())
+    {
+        cout << "Failed to open file: " << filename << endl;
+        return nullptr;
+    }
+    int firstInt;
+    firstInt = getNextValidDigitInt(infile);
+    if (firstInt == EOF) {
+        cout<< "File is empty or has no valid vertex number!" << endl;
+        infile.close();
+        return nullptr;
+    }
+    // 转换为顶点数
+    int vertexnum = charToNum(static_cast<char>(firstInt));
+    const int MAX_VERTEX_NUM = 50;
+    if (vertexnum <= 0 || vertexnum > MAX_VERTEX_NUM) {
+        if (vertexnum <= 0) {
+            cerr << "Invalid vertex number: " << vertexnum << " (must be positive integer)" << endl;
+        }
+        else {
+            cerr << "The vertex number (" << vertexnum << ") is excessive (max: " << MAX_VERTEX_NUM << ")" << endl;
+        }
+        infile.close();
+        return nullptr;
+    }
+    // 创建图对象
+    graph = new adj_graph(vertexnum);
+    int srcInt, destInt;
+    while (true) {
+        srcInt = getNextValidDigitInt(infile);
+        if (srcInt == EOF) {
+            break;
+        }
+        destInt = getNextValidDigitInt(infile);
+        if (destInt == EOF) {
+            cerr << "Warning: Only one valid digit remains at the end of the file, cannot build edge!" << endl;
+            break;
+        }
+        int srcNum = charToNum(static_cast<char>(srcInt));
+        int destNum = charToNum(static_cast<char>(destInt));
+        graph->add_edge(srcNum, destNum);
+    }
+    infile.close();
     return graph;
 }
