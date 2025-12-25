@@ -790,24 +790,6 @@ int charToNum(char ch)
     return -1;
 }
 
-
-int getNextValidDigitInt(ifstream& infile) {
-    int ch; // 用int存储，避免EOF截断问题
-    while (true) {
-        // 先读取字符（返回int类型，直接接收EOF）
-        ch = infile.get();
-        // 校验流状态：读取失败/文件末尾，返回EOF
-        if (ch == EOF || !infile) {
-            return EOF;
-        }
-        // 校验是否为有效数字字符，有效则返回
-        if (charToNum(static_cast<char>(ch)) != -1) {
-            return ch;
-        }
-        // 非有效字符，继续循环跳过
-    }
-}
-
 adj_graph* createGraphbyhand() 
 {
     adj_graph* graph;
@@ -862,24 +844,53 @@ adj_graph* createRandomGraph()
     return graph;
 }
 
+int getNextValidNumber(ifstream& infile) {
+    string numStr; // 存储连续数字字符
+    char ch;
+    //跳过所有非数字字符
+    while (true) {
+        if (!infile || infile.eof()) {
+            return -1;
+        }
+        infile.get(ch);
+        if (ch >= '0' && ch <= '9') {
+            numStr += ch;
+            break;
+        }
+    }
+    while (true) {
+        // 预读取
+        if (!infile || infile.eof()) {
+            break;
+        }
+        ch = infile.peek();
+        if (ch >= '0' && ch <= '9') {
+            infile.get(ch);
+            numStr += ch;
+        }
+        else {
+            // 非数字字符，停止读取
+            break;
+        }
+    }
+    return atoi(numStr.c_str());
+}
+
 adj_graph* createGraphfromfile(const string& filename)
 {
     adj_graph* graph = nullptr;
     ifstream infile(filename);
     if (!infile.is_open())
     {
-        cout << "Failed to open file: " << filename << endl;
+        cerr << "Failed to open file: " << filename << endl;
         return nullptr;
     }
-    int firstInt;
-    firstInt = getNextValidDigitInt(infile);
-    if (firstInt == EOF) {
-        cout<< "File is empty or has no valid vertex number!" << endl;
+    int vertexnum = getNextValidNumber(infile);
+    if (vertexnum == -1) { 
+        cerr << "File is empty or has no valid vertex number!" << endl;
         infile.close();
         return nullptr;
     }
-    // 转换为顶点数
-    int vertexnum = charToNum(static_cast<char>(firstInt));
     const int MAX_VERTEX_NUM = 50;
     if (vertexnum <= 0 || vertexnum > MAX_VERTEX_NUM) {
         if (vertexnum <= 0) {
@@ -891,23 +902,26 @@ adj_graph* createGraphfromfile(const string& filename)
         infile.close();
         return nullptr;
     }
-    // 创建图对象
     graph = new adj_graph(vertexnum);
-    int srcInt, destInt;
+    if (!graph) {
+        cerr << "Failed to create adj_graph object!" << endl;
+        infile.close();
+        return nullptr;
+    }
+    int srcNum, destNum;
     while (true) {
-        srcInt = getNextValidDigitInt(infile);
-        if (srcInt == EOF) {
+        srcNum = getNextValidNumber(infile);
+        if (srcNum == -1) {
             break;
         }
-        destInt = getNextValidDigitInt(infile);
-        if (destInt == EOF) {
-            cerr << "Warning: Only one valid digit remains at the end of the file, cannot build edge!" << endl;
+        destNum = getNextValidNumber(infile);
+        if (destNum == -1) {
+            cout<< "Warning: Only one valid number remains at the end of the file, cannot build edge!" << endl;
             break;
         }
-        int srcNum = charToNum(static_cast<char>(srcInt));
-        int destNum = charToNum(static_cast<char>(destInt));
         graph->add_edge(srcNum, destNum);
     }
+
     infile.close();
     return graph;
 }
