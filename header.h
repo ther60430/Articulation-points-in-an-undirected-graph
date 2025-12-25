@@ -765,10 +765,10 @@ public:
 
         FlushBatchDraw();
     }
-
+    
     void run() {
         BeginBatchDraw();
-
+        
         // ³õÊ¼¼ÆËã¸îµã
         graph->find_cut_vertex();
         cout << "Initial cut vertices: " << graph->get_cut_vertex_count() << endl;
@@ -909,5 +909,32 @@ adj_graph* createGraphfromfile(const string& filename)
         graph->add_edge(srcNum, destNum);
     }
     infile.close();
+    return graph;
+}
+
+adj_graph* InitializeGraph(int method)
+{
+    adj_graph* graph = nullptr;
+    switch (method)
+    {
+    case 1:
+    {
+        graph = createGraphbyhand();
+        break;
+    }
+    case 2:
+    {
+        graph = createRandomGraph();
+        break;
+    }
+    case 3:
+    {
+        graph = createGraphfromfile("text.txt");
+        break;
+    }
+    default:
+        graph = nullptr;
+        break;
+    }
     return graph;
 }

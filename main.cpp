@@ -1,14 +1,16 @@
 #include"header.h"
 int main() {
     system("chcp 65001 > nul");
-
-<<<<<<< HEAD
-    adj_graph* graph = createRandomGraph();
-=======
-    adj_graph* graph = createGraphfromfile("text.txt");
->>>>>>> cf42c66daedb979cd15123f73630574a24b793f2
+    cout << "input method:\n";
+    cout << "1:create graph by hand\n";
+    cout << "2:create random graph\n";
+    cout << "3:create graph from file\n";
+    int method;
+    cin >> method;
+    adj_graph *graph=InitializeGraph(method);
 
     GraphVisualizer visualizer(graph);
+    
     visualizer.run();
 
     delete graph;
