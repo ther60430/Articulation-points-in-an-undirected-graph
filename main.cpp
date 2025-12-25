@@ -2,7 +2,7 @@
 int main() {
     system("chcp 65001 > nul");
 
-    adj_graph* graph = createExampleGraph();
+    adj_graph* graph = createGraphfromfile("text.txt");
 
     GraphVisualizer visualizer(graph);
     visualizer.run();
