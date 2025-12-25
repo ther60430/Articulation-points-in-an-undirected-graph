@@ -598,20 +598,23 @@ public:
         int buttonWidth = 180;
         int buttonHeight = 40;
         int spacing = 20;
+        int exitWidth = 100;
 
         int x1 = 50;
         int x2 = x1 + buttonWidth + spacing;
         int x3 = x2 + buttonWidth + spacing;
         int x4 = x3 + buttonWidth + spacing;
         int x5 = x4 + buttonWidth + spacing;
+		int x6 = x5 + buttonWidth + spacing;
 
-        buttons.resize(5);
+        buttons.resize(6);
         buttons[0] = { x1, buttonY, buttonWidth, buttonHeight, showCutVertices ? L"Hide Cut Vertices" : L"Show Cut Vertices", false, false };
         buttons[1] = { x2, buttonY, buttonWidth, buttonHeight, showDFSInfo ? L"Hide DFS Info" : L"Show DFS Info", false, false };
         buttons[2] = { x3, buttonY, buttonWidth, buttonHeight, L"Find Cut Vertices", false, false };
         buttons[3] = { x4, buttonY, buttonWidth, buttonHeight, isTransformed ? L"Reset Graph" : L"Add Redundant Edges", false, false };
         // Copy Nodes 在已转换时禁用
         buttons[4] = { x5, buttonY, buttonWidth, buttonHeight, L"Copy Nodes", false, isTransformed };
+		buttons[5] = { x6, buttonY, exitWidth, buttonHeight, L"Exit", false, false };
     }
 
     // 绘制单个按钮，不再在这里读取鼠标事件
@@ -642,7 +645,7 @@ public:
     }
 
     // 仅在这里读取并处理鼠标消息，避免重复消费
-    void processMouseInput() {
+int processMouseInput() {
         bool anyMouse = false;
         MOUSEMSG m;
         // 读取所有可用的鼠标消息，保留最后一条用于 hover / click 处理
@@ -654,7 +657,7 @@ public:
         }
 
         // 如果没有鼠标消息则不修改 hover（避免消耗其他地方的事件）
-        if (!anyMouse) return;
+        if (!anyMouse) return 0;
 
         // 更新 hover 状态（基于最后一条消息的位置）
         int mx = lastMsg.x;
@@ -717,7 +720,10 @@ public:
                 cout << "Nodes copied successfully!" << endl;
                 calculateNodePositions();
             }
-
+            else if (pointInRect(mx, my, buttons[5])) 
+            {
+                return -1;
+            }
             // 点击后更新按钮文本和可用性
             prepareButtons();
         }
@@ -731,7 +737,7 @@ public:
         }
     }
 
-    void render() {
+    int render() {
         cleardevice();
 
         // 绘制所有边
@@ -752,8 +758,7 @@ public:
 
         drawInfoPanel();
         drawControls();
-        processMouseInput();  // 处理鼠标输入（现在只在此处读取鼠标事件）
-
+        int count=processMouseInput();  // 处理鼠标输入（现在只在此处读取鼠标事件）
         settextcolor(TEXT_COLOR);
         settextstyle(32, 0, _T("Arial"));
         outtextxy(50, 30, L"Graph Visualization");
@@ -764,6 +769,10 @@ public:
         outtextxy(50, 80, subtitle.c_str());
 
         FlushBatchDraw();
+        if (count == -1)
+        {
+            return -1;
+        }
     }
     
     void run() {
@@ -772,15 +781,20 @@ public:
         // 初始计算割点
         graph->find_cut_vertex();
         cout << "Initial cut vertices: " << graph->get_cut_vertex_count() << endl;
-
+        int c;
         while (true) {
-            render();
-            Sleep(50);
+            c=render();
+            if(c==-1)
+            {
+                break;
+			}
+           /* Sleep(50);*/
         }
 
-        EndBatchDraw();
+        /*EndBatchDraw();*/
     }
 };
+
 int charToNum(char ch) 
 {
     if (ch >= '0' && ch <= '9') 
@@ -827,7 +841,7 @@ adj_graph* createGraphbyhand()
 adj_graph* createRandomGraph()
 {
     srand((unsigned int)time(0));
-    int verNum = rand()%50;
+    int verNum = rand()%49+1;
     if (verNum == 0)
     {
         adj_graph* graph = new adj_graph(0);
@@ -904,7 +918,7 @@ adj_graph* createGraphfromfile(const string& filename)
     }
     graph = new adj_graph(vertexnum);
     if (!graph) {
-        cerr << "Failed to create adj_graph object!" << endl;
+        cout << "Failed to create adj_graph object!" << endl;
         infile.close();
         return nullptr;
     }
