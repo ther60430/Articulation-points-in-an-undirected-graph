@@ -452,6 +452,8 @@ public:
     ~GraphVisualizer() {
         closegraph();
         delete originalGraph;
+        // 删除当前图对象，GraphVisualizer 对传入的 graph 拥有所有权
+        delete graph;
     }
 
     void calculateNodePositions() {
