@@ -13,7 +13,7 @@
 #include <ctime>
 using namespace std;
 
-// 引入全局图形引用计数，防止多次 init/close 导致异常
+//引入全局图形引用计数防止多次 init/close 导致异常
 static int s_graphicsRefCount = 0;
 static void EnsureGraphicsInit(int width, int height)
 {
@@ -137,15 +137,24 @@ public:
     adj_graph(const adj_graph& other) {
         vertexnum = other.vertexnum;
         time = other.time;
-
+        if (vertexnum == 0) 
+        {
+            adjlist = nullptr;
+            dfn = nullptr;
+            low = nullptr;
+            parent = nullptr;
+            is_cut_vertex = nullptr;
+            visited = nullptr;
+            return;
+        }
         adjlist = new Vertex[vertexnum];
         dfn = new int[vertexnum];
         low = new int[vertexnum];
         parent = new int[vertexnum];
         is_cut_vertex = new bool[vertexnum];
         visited = new bool[vertexnum];
-
-        for (int i = 0; i < vertexnum; i++) {
+        for (int i = 0; i < vertexnum; i++) 
+        {
             adjlist[i].deepCopy(other.adjlist[i]);
             dfn[i] = other.dfn[i];
             low[i] = other.low[i];
@@ -163,6 +172,12 @@ public:
         delete[] is_cut_vertex;
         delete[] visited;
         delete[] parent;
+        adjlist = nullptr;
+        dfn = nullptr;
+        low = nullptr;
+        parent = nullptr;
+        is_cut_vertex = nullptr;
+        visited = nullptr;
     }
 
     bool is_exist(int src, int dest)
@@ -185,11 +200,9 @@ public:
         }
         else if (!is_exist(src, dest))
         {
-            // 添加src->dest的边
             EdgeNode* newnode = new EdgeNode(dest);
             newnode->next = adjlist[src].firstnode;
             adjlist[src].firstnode = newnode;
-            // 添加dest->src的边（无向图）
             newnode = new EdgeNode(src);
             newnode->next = adjlist[dest].firstnode;
             adjlist[dest].firstnode = newnode;
@@ -435,7 +448,8 @@ wstring intToWString(int value) {
     return to_wstring(value);
 }
 
-class GraphVisualizer {
+class GraphVisualizer 
+{
 private:
     adj_graph* graph;
     adj_graph* originalGraph;
@@ -446,44 +460,36 @@ private:
     bool showDFSInfo;
     bool isTransformed;
     int transformMethod;
-
-    // 按钮交互相关
+    // 按钮
     struct ButtonInfo { int x, y, w, h; wstring text; bool hover; bool disabled; };
     vector<ButtonInfo> buttons;
-
-    // 新增：返回一级界面的标识（无需额外成员，复用按钮数组即可）
 public:
     GraphVisualizer(adj_graph* g) : graph(g), showCutVertices(true), showDFSInfo(false),
         isTransformed(false), transformMethod(0) {
         windowWidth = 1200;
         windowHeight = 800;
-        // 使用引用计数保证 initgraph/closegraph 配对
+        //引用计数保证 initgraph/closegraph 配对
         EnsureGraphicsInit(windowWidth, windowHeight);
         setbkcolor(BACKGROUND_COLOR);
         cleardevice();
-
         originalGraph = new adj_graph(*g);
-
         calculateNodePositions();
-
-        //初始化按钮
         prepareButtons();
     }
 
-    ~GraphVisualizer() {
-        
+    ~GraphVisualizer() 
+    {
         delete originalGraph;
-        // 删除当前图对象，GraphVisualizer 对传入的 graph 拥有所有权
         delete graph;
         EnsureGraphicsClose();
     }
 
-    void calculateNodePositions() {
+    void calculateNodePositions()                 //计算节点位置
+    {
         nodePositions.clear();
         int centerX = windowWidth / 2-100;
         int centerY = windowHeight / 2;
         int radius = 250;
-
         for (int i = 0; i < graph->vertexnum; i++) {
             double angle = 2 * 3.1415926 * i / graph->vertexnum;
             int x = centerX + radius * cos(angle);
@@ -492,93 +498,79 @@ public:
         }
     }
 
-    void drawNode(int nodeId, bool isCutVertex = false) {
+    void drawNode(int nodeId, bool isCutVertex = false)                  //画节点
+    {
         if (nodeId >= nodePositions.size()) return;
-
         POINT pos = nodePositions[nodeId];
         int radius = 20;
-
-        if (isCutVertex && showCutVertices) {
+        if (isCutVertex && showCutVertices) 
+        {
             setfillcolor(CUT_NODE_COLOR);
             setlinecolor(CUT_NODE_COLOR);
         }
-        else if (isTransformed && nodeId >= originalGraph->vertexnum) {
+        else if (isTransformed && nodeId >= originalGraph->vertexnum) 
+        {
             setfillcolor(TRANSFORM_NODE_COLOR);
             setlinecolor(TRANSFORM_NODE_COLOR);
         }
-        else {
+        else 
+        {
             setfillcolor(NODE_COLOR);
             setlinecolor(NODE_COLOR);
         }
-
         fillcircle(pos.x, pos.y, radius);
-
         setlinecolor(WHITE);
         circle(pos.x, pos.y, radius);
-
         settextcolor(WHITE);
         settextstyle(20, 0, _T("Arial"));
         setbkmode(TRANSPARENT);
-
         wstring label = intToWString(nodeId);
-
         int textWidth = textwidth(label.c_str()) / 2;
         int textHeight = textheight(label.c_str()) / 2;
         outtextxy(pos.x - textWidth, pos.y - textHeight, label.c_str());
-
         if (showDFSInfo && nodeId < graph->vertexnum) {
             settextcolor(TEXT_COLOR);
             settextstyle(14, 0, _T("Arial"));
-
             wstring info = L"[" + intToWString(graph->dfn[nodeId]) +
                 L"," + intToWString(graph->low[nodeId]) + L"]";
-
             int infoWidth = textwidth(info.c_str()) / 2;
             outtextxy(pos.x - infoWidth, pos.y + radius + 5, info.c_str());
         }
     }
 
-    void drawEdge(int src, int dest) {
+    void drawEdge(int src, int dest)                //画边
+    {
         if (src >= nodePositions.size() || dest >= nodePositions.size()) return;
-
         POINT srcPos = nodePositions[src];
         POINT destPos = nodePositions[dest];
-
         double dx = destPos.x - srcPos.x;
         double dy = destPos.y - srcPos.y;
         double length = sqrt(dx * dx + dy * dy);
         if (length == 0) return;
-
         dx /= length;
         dy /= length;
-
         int startX = srcPos.x + dx * 20;
         int startY = srcPos.y + dy * 20;
         int endX = destPos.x - dx * 20;
         int endY = destPos.y - dy * 20;
-
         setlinecolor(EDGE_COLOR);
         setlinestyle(PS_SOLID, 2);
         line(startX, startY, endX, endY);
-
         setlinestyle(PS_SOLID, 1);
     }
 
-    void drawInfoPanel() {
+    void drawInfoPanel()                     //绘制信息面板
+    {
         setfillcolor(INFO_BG_COLOR);
         setlinecolor(RGB(200, 200, 200));
         fillrectangle(windowWidth - 300, 20, windowWidth - 20, windowHeight - 150);
-
         settextcolor(TEXT_COLOR);
         settextstyle(24, 0, _T("Arial"));
         outtextxy(windowWidth - 280, 40, L"Graph Information");
-
         settextstyle(16, 0, _T("Arial"));
         int y = 90;
-
         wstring info = L"Vertices: " + intToWString(graph->vertexnum);
         outtextxy(windowWidth - 280, y, info.c_str());
-
         int edgeCount = 0;
         for (int i = 0; i < graph->vertexnum; i++) {
             EdgeNode* cur = graph->adjlist[i].firstnode;
@@ -615,22 +607,20 @@ public:
         }
     }
 
-    //新增返回按钮，保持原有按钮布局不变
-    void prepareButtons() {
+    void prepareButtons()              //初始化按钮
+    {
         buttons.clear();
         int buttonY = windowHeight - 120;
         int buttonWidth = 180;
         int buttonHeight = 40;
         int spacing = 20;
         int exitWidth = 100;
-
         int x1 = 50;
         int x2 = x1 + buttonWidth + spacing;
         int x3 = x2 + buttonWidth + spacing;
         int x4 = x3 + buttonWidth + spacing;
         int x5 = x4 + buttonWidth + spacing;
         int x6 = x5 + buttonWidth + spacing;
-
         // 6个按钮
         buttons.resize(6);
         buttons[0] = { x1, buttonY, buttonWidth, buttonHeight, showCutVertices ? L"Hide Cut Vertices" : L"Show Cut Vertices", false, false };
@@ -641,20 +631,22 @@ public:
         buttons[5] = { x6, buttonY, exitWidth, buttonHeight, L"Return", false, false };
     }
 
-    void drawButton(const ButtonInfo& b) {
-        if (b.disabled) {
+    void drawButton(const ButtonInfo& b)               //绘制按钮
+    {
+        if (b.disabled) 
+        {
             setfillcolor(BUTTON_DISABLED_COLOR);
         }
-        else if (b.hover) {
+        else if (b.hover) 
+        {
             setfillcolor(BUTTON_HOVER_COLOR);
         }
-        else {
+        else
+        {
             setfillcolor(BUTTON_COLOR);
         }
-
         setlinecolor(RGB(50, 50, 50));
         fillroundrect(b.x, b.y, b.x + b.w, b.y + b.h, 10, 10);
-
         settextcolor(WHITE);
         settextstyle(18, 0, _T("Arial"));
         int textWidth = textwidth(b.text.c_str());
@@ -662,13 +654,13 @@ public:
         outtextxy(b.x + (b.w - textWidth) / 2, b.y + (b.h - textHeight) / 2, b.text.c_str());
     }
 
-    // 原有点在矩形内判断，无改动
-    static bool pointInRect(int px, int py, const ButtonInfo& b) {
+    static bool pointInRect(int px, int py, const ButtonInfo& b)       //判断点是否在按钮内
+    {
         return (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h);
     }
 
-    //处理返回按钮点击，返回2表示回退到一级界面
-    int processMouseInput() {
+    int processMouseInput()                  //处理鼠标输入
+    {
         bool anyMouse = false;
         MOUSEMSG m;
         MOUSEMSG lastMsg = { 0 };
@@ -677,21 +669,20 @@ public:
             lastMsg = m;
             anyMouse = true;
         }
-
         if (!anyMouse) return 0;
-
         int mx = lastMsg.x;
         int my = lastMsg.y;
         for (auto& btn : buttons) {
             btn.hover = (!btn.disabled) && pointInRect(mx, my, btn);
         }
-
-        if (lastMsg.uMsg == WM_LBUTTONDOWN) {
+        if (lastMsg.uMsg == WM_LBUTTONDOWN)
+        {
             if (pointInRect(mx, my, buttons[0])) {
                 showCutVertices = !showCutVertices;
                 cout << "Toggled cut vertices display: " << (showCutVertices ? "ON" : "OFF") << endl;
             }
-            else if (pointInRect(mx, my, buttons[1])) {
+            else if (pointInRect(mx, my, buttons[1])) 
+            {
                 showDFSInfo = !showDFSInfo;
                 cout << "Toggled DFS info display: " << (showDFSInfo ? "ON" : "OFF") << endl;
             }
@@ -701,19 +692,20 @@ public:
                 int cutCount = graph->get_cut_vertex_count();
                 cout << "Found " << cutCount << " cut vertices" << endl;
             }
-            else if (pointInRect(mx, my, buttons[3])) {
+            else if (pointInRect(mx, my, buttons[3])) 
+            {
                 if (!isTransformed) {
                     cout << "Adding redundant edges..." << endl;
                     adj_graph* tempGraph = new adj_graph(*graph);
                     tempGraph->transform_cut_vertex(0);
-
                     delete graph;
                     graph = tempGraph;
                     isTransformed = true;
                     transformMethod = 0;
                     cout << "Redundant edges added successfully!" << endl;
                 }
-                else {
+                else 
+                {
                     cout << "Resetting graph..." << endl;
                     delete graph;
                     graph = new adj_graph(*originalGraph);
@@ -722,7 +714,8 @@ public:
                 }
                 calculateNodePositions();
             }
-            else if (pointInRect(mx, my, buttons[4]) && !buttons[4].disabled) {
+            else if (pointInRect(mx, my, buttons[4]) && !buttons[4].disabled) 
+            {
                 cout << "Copying nodes..." << endl;
                 adj_graph* tempGraph = new adj_graph(*graph);
                 tempGraph->transform_cut_vertex(1);
@@ -733,40 +726,44 @@ public:
                 cout << "Nodes copied successfully!" << endl;
                 calculateNodePositions();
             }
-            //处理返回一级界面按钮
-            else if (pointInRect(mx, my, buttons[5])) {
-                return 2; // 标识返回一级界面
+            //返回一级界面按钮
+            else if (pointInRect(mx, my, buttons[5])) 
+            {
+                return 2; 
             }
             prepareButtons();
         }
         return 0;
     }
 
-    void drawControls() {
+    void drawControls()                //绘制按钮
+    {
         for (const auto& b : buttons) {
             drawButton(b);
         }
     }
 
-    //返回状态值，支持回退一级界面
-    int render() {
+    int render()                //渲染图形界面
+    {
         cleardevice();
         // 绘制所有边
-        for (int i = 0; i < graph->vertexnum; i++) {
+        for (int i = 0; i < graph->vertexnum; i++) 
+        {
             EdgeNode* cur = graph->adjlist[i].firstnode;
-            while (cur != nullptr) {
-                if (i <= cur->adjvex) {
+            while (cur != nullptr) 
+            {
+                if (i <= cur->adjvex) 
+                {
                     drawEdge(i, cur->adjvex);
                 }
                 cur = cur->next;
             }
         }
-
         // 绘制所有节点
-        for (int i = 0; i < graph->vertexnum; i++) {
+        for (int i = 0; i < graph->vertexnum; i++) 
+        {
             drawNode(i, graph->is_cut_vertex[i]);
         }
-
         drawInfoPanel();
         drawControls();
         int count = processMouseInput();
@@ -778,32 +775,31 @@ public:
             (transformMethod == 0 ? L"With Redundant Edges Transformation" : L"With Node Copy Transformation") :
             L"Adjacency List with Cut Vertex Detection";
         outtextxy(50, 80, subtitle.c_str());
-
-        FlushBatchDraw();
-
-        // 仅保留Return按钮的返回状态，删除无效的-1判断
-        if (count == 2) {
-            return 2; // 回退一级界面
+		FlushBatchDraw();              // 刷新绘图
+        if (count == 2) 
+        {
+            return 2;
         }
         return 0;
     }
 
-    //运行逻辑，支持返回一级界面
-    int run() {
-        BeginBatchDraw();
-
-        // 初始计算割点
+    void run()                //运行可视化界面
+    {
+		BeginBatchDraw();           //开始批量绘图
+        //初始计算割点
         graph->find_cut_vertex();
         cout << "Initial cut vertices: " << graph->get_cut_vertex_count() << endl;
         int c=0;
-        while (true) {
+        while (true) 
+        {
             c = render();
-            if (c == 2) { // 退出或返回一级界面
+            if (c == 2) 
+            {
                 break;
             }
         }
-        EndBatchDraw(); //原有缺失的EndBatchDraw
-        return c; // 返回状态，供main函数判断
+		EndBatchDraw();             //结束批量绘图
+        return;
     }
 };
 
@@ -828,7 +824,6 @@ adj_graph* createGraphbyhand()
     settextcolor(TEXT_COLOR);
     settextstyle(28, 0, _T("Arial"));
     outtextxy(boxX + 20, boxY + 20, L"Create Graph by Hand (Graphical Input)");
-
     settextstyle(18, 0, _T("Arial"));
     outtextxy(boxX + 20, boxY + 60, L"Step 1: 输入顶点数（1 ~ 50），按 Enter 确认。");
     outtextxy(boxX + 20, boxY + 90, L"Step 2: 在下面文本框中逐行输入边：'src dest'（例如：0 1），");
@@ -838,19 +833,17 @@ adj_graph* createGraphbyhand()
     fillrectangle(vx, vy, vx + vw, vy + vh);
     setlinecolor(RGB(200, 200, 200));
     rectangle(vx, vy, vx + vw, vy + vh);
-
     int tx = boxX + 20, ty = vy + vh + 20, tw = boxW - 40, th = 300;
     setfillcolor(RGB(250, 250, 250));
     fillrectangle(tx, ty, tx + tw, ty + th);
     setlinecolor(RGB(200, 200, 200));
     rectangle(tx, ty, tx + tw, ty + th);
-
-    // Done / Cancel 按钮
+    //Done和Cancel 按钮
     int btnW = 120, btnH = 40;
     int doneX = boxX + boxW - btnW - 20, doneY = boxY + boxH - btnH - 20;
     int cancelX = doneX - btnW - 20, cancelY = doneY;
-
-    auto drawButtons = [&]() {
+	auto drawButtons = [&]()        //Lambda绘制按钮
+        {
         setfillcolor(BUTTON_COLOR);
         fillroundrect(cancelX, cancelY, cancelX + btnW, cancelY + btnH, 6, 6);
         settextstyle(18, 0, _T("Arial"));
@@ -859,11 +852,11 @@ adj_graph* createGraphbyhand()
         fillroundrect(doneX, doneY, doneX + btnW, doneY + btnH, 6, 6);
         outtextxy(doneX + 35, doneY + 10, L"Done");
         };
-
     drawButtons();
     string vertexStr;
     bool vertexConfirmed = false;
-    auto refreshVertexBox = [&]() {
+	auto refreshVertexBox = [&]()          //Lambda刷新顶点输入框
+        {
         setfillcolor(RGB(245, 245, 245));
         fillrectangle(vx + 1, vy + 1, vx + vw - 1, vy + vh - 1);
         settextcolor(RGB(0, 0, 0));
@@ -872,37 +865,41 @@ adj_graph* createGraphbyhand()
         outtextxy(vx + 8, vy + 6, ws.c_str());
         FlushBatchDraw();
         };
-
     vector<string> lines;
     string curLine;
-    auto refreshTextArea = [&]() {
+	auto refreshTextArea = [&]() //Lambda刷新文本区域
+        {
         setfillcolor(RGB(250, 250, 250));
         fillrectangle(tx + 1, ty + 1, tx + tw - 1, ty + th - 1);
         settextcolor(RGB(0, 0, 0));
         settextstyle(16, 0, _T("Arial"));
         int lineY = ty + 6;
         int maxLines = th / 20;
-        for (int i = 0; i < (int)lines.size() && i < maxLines - 1; ++i) {
+        for (int i = 0; i < (int)lines.size() && i < maxLines - 1; ++i) 
+        {
             wstring ws(lines[i].begin(), lines[i].end());
             outtextxy(tx + 6, lineY + i * 20, ws.c_str());
         }
-        if ((int)lines.size() < maxLines - 1) {
+        if ((int)lines.size() < maxLines - 1) 
+        {
             wstring wsCur(curLine.begin(), curLine.end());
             outtextxy(tx + 6, lineY + (int)lines.size() * 20, wsCur.c_str());
         }
         FlushBatchDraw();
         };
-    bool aborted = false;
-    bool keyPrev[256] = { 0 };
-    auto keyPressedOnce = [&](int vk) -> bool {
-        SHORT st = GetAsyncKeyState(vk);
-        bool pressed = (st & 0x8000) != 0;
+	bool aborted = false;             // 是否取消输入
+	bool keyPrev[256] = { 0 };         // 按键状态记录
+	auto keyPressedOnce = [&](int vk) -> bool                //Lambda检测按键单次按下
+        {
+		SHORT st = GetAsyncKeyState(vk);                //获取按键状态
+        bool pressed = (st & 0x8000) != 0;                    
         if (pressed && !keyPrev[vk]) { keyPrev[vk] = true; return true; }
         if (!pressed) keyPrev[vk] = false;
         return false;
         };
-    // 顶点数输入循环（只接收数字、Backspace、Enter、Cancel）
-    while (!vertexConfirmed && !aborted) {
+    // 顶点数输入循环
+    while (!vertexConfirmed && !aborted) 
+    {
         refreshVertexBox();
         // 鼠标点击 Cancel
         while (MouseHit()) {
@@ -915,27 +912,35 @@ adj_graph* createGraphbyhand()
             }
         }
         // 数字按键（0-9）
-        for (int k = '0'; k <= '9'; ++k) {
+        for (int k = '0'; k <= '9'; ++k) 
+        {
             if (keyPressedOnce(k)) {
                 if (vertexStr.size() < 3) vertexStr.push_back((char)k);
             }
         }
-        for (int k = VK_NUMPAD0; k <= VK_NUMPAD9; ++k) {
-            if (keyPressedOnce(k)) {
+        for (int k = VK_NUMPAD0; k <= VK_NUMPAD9; ++k) 
+        {
+            if (keyPressedOnce(k)) 
+            {
                 int digit = k - VK_NUMPAD0;
                 if (vertexStr.size() < 3) vertexStr.push_back(char('0' + digit));
             }
         }
-        if (keyPressedOnce(VK_BACK)) {
+        if (keyPressedOnce(VK_BACK)) 
+        {
             if (!vertexStr.empty()) vertexStr.pop_back();
         }
-        if (keyPressedOnce(VK_RETURN)) {
-            if (!vertexStr.empty()) {
+        if (keyPressedOnce(VK_RETURN)) 
+        {
+            if (!vertexStr.empty()) 
+            {
                 int n = atoi(vertexStr.c_str());
-                if (n > 0 && n <= 50) {
+                if (n > 0 && n <= 50) 
+                {
                     vertexConfirmed = true;
                 }
-                else {
+                else 
+                {
                     settextcolor(RGB(200, 0, 0));
                     outtextxy(vx + vw + 10, vy + 6, L"Invalid (1-50)");
                     FlushBatchDraw();
@@ -946,97 +951,111 @@ adj_graph* createGraphbyhand()
                 }
             }
         }
-        if (keyPressedOnce(VK_ESCAPE)) {
+        if (keyPressedOnce(VK_ESCAPE)) 
+        {
             aborted = true;
         }
         Sleep(10);
     }
-
-    if (aborted) {
+    if (aborted)           
+    {
         // 恢复屏幕并关闭临时图形上下文
         cleardevice();
         EnsureGraphicsClose();
         return nullptr;
     }
-
     int num = atoi(vertexStr.c_str());
     adj_graph* graph = new adj_graph(num);
-
     refreshTextArea();
     bool done = false;
-    while (!done && !aborted) {
+    while (!done && !aborted) 
+    {
         refreshTextArea();
-        // 处理鼠标（点击 Done / Cancel）
-        while (MouseHit()) {
+        //点击Done或Cancel
+        while (MouseHit()) 
+        {
             MOUSEMSG mm = GetMouseMsg();
-            if (mm.uMsg == WM_LBUTTONDOWN) {
-                if (mm.x >= doneX && mm.x <= doneX + btnW && mm.y >= doneY && mm.y <= doneY + btnH) {
+            if (mm.uMsg == WM_LBUTTONDOWN) 
+            {
+                if (mm.x >= doneX && mm.x <= doneX + btnW && mm.y >= doneY && mm.y <= doneY + btnH) 
+                {
                     if (!curLine.empty()) lines.push_back(curLine);
                     done = true;
                     break;
                 }
-                if (mm.x >= cancelX && mm.x <= cancelX + btnW && mm.y >= cancelY && mm.y <= cancelY + btnH) {
+                if (mm.x >= cancelX && mm.x <= cancelX + btnW && mm.y >= cancelY && mm.y <= cancelY + btnH) 
+                {
                     aborted = true;
                     break;
                 }
             }
         }
         // 数字按键
-        for (int k = '0'; k <= '9'; ++k) {
-            if (keyPressedOnce(k)) curLine.push_back((char)k);
+        for (int k = '0'; k <= '9'; ++k) 
+        {
+            if (keyPressedOnce(k)) 
+                curLine.push_back((char)k);
         }
 
-        for (int k = VK_NUMPAD0; k <= VK_NUMPAD9; ++k) {
-            if (keyPressedOnce(k)) {
+        for (int k = VK_NUMPAD0; k <= VK_NUMPAD9; ++k) 
+        {
+            if (keyPressedOnce(k)) 
+            {
                 int digit = k - VK_NUMPAD0;
                 curLine.push_back(char('0' + digit));
             }
         }
-        if (keyPressedOnce(VK_SPACE)) curLine.push_back(' ');
-        if (keyPressedOnce(VK_BACK)) {
-            if (!curLine.empty()) curLine.pop_back();
-            else if (!lines.empty()) { curLine = lines.back(); lines.pop_back(); }
+        if (keyPressedOnce(VK_SPACE)) 
+            curLine.push_back(' ');
+        if (keyPressedOnce(VK_BACK)) 
+        {
+            if (!curLine.empty()) 
+                curLine.pop_back();
+            else if (!lines.empty()) 
+            { 
+                curLine = lines.back(); 
+                lines.pop_back(); 
+            }
         }
-        if (keyPressedOnce(VK_RETURN)) {
-            if (!curLine.empty()) lines.push_back(curLine);
+        if (keyPressedOnce(VK_RETURN)) 
+        {
+            if (!curLine.empty()) 
+                lines.push_back(curLine);
             curLine.clear();
         }
-        if (keyPressedOnce(VK_ESCAPE)) {
+        if (keyPressedOnce(VK_ESCAPE)) 
+        {
             aborted = true;
             break;
         }
         Sleep(10);
     }
-
     if (aborted) {
         delete graph;
         cleardevice();
         EnsureGraphicsClose();
         return nullptr;
     }
-
-    // 解析每行边并添加
-    for (const string& ln : lines) {
+    //解析每行边并添加
+    for (const string& ln : lines) 
+    {
         if (ln.empty()) continue;
         // 提取两个整数
-        istringstream iss(ln);
+		istringstream iss(ln);          //字符串流解析
         int s, d;
         if (!(iss >> s >> d)) {
-            // 跳过解析失败的行
+            //解析失败
             continue;
         }
-        if (s < 0 || d < 0 || s >= num || d >= num) {
-            // 越界则跳过
+        if (s < 0 || d < 0 || s >= num || d >= num) 
+        {
+            //越界
             continue;
         }
         graph->add_edge(s, d);
     }
-
-    // 清理界面
     cleardevice();
-    FlushBatchDraw();
-
-   
+    FlushBatchDraw(); 
     EnsureGraphicsClose();
     return graph;
 }
@@ -1061,32 +1080,40 @@ adj_graph* createRandomGraph()
     return graph;
 }
 
-int getNextValidNumber(ifstream& infile) {
+int getNextValidNumber(ifstream& infile) 
+{
     string numStr;
     char ch;
-    //跳过所有非数字字符
-    while (true) {
-        if (!infile || infile.eof()) {
+    //跳过非数字字符
+    while (true) 
+    {
+        if (!infile || infile.eof()) 
+        {
             return -1;
         }
         infile.get(ch);
-        if (ch >= '0' && ch <= '9') {
+        if (ch >= '0' && ch <= '9') 
+        {
             numStr += ch;
             break;
         }
     }
-    while (true) {
-        // 预读取
-        if (!infile || infile.eof()) {
+    while (true) 
+    {
+        //预读取
+        if (!infile || infile.eof()) 
+        {
             break;
         }
         ch = infile.peek();
-        if (ch >= '0' && ch <= '9') {
+        if (ch >= '0' && ch <= '9') 
+        {
             infile.get(ch);
             numStr += ch;
         }
-        else {
-            // 非数字字符，停止读取
+        else 
+        {
+            //非数字字符，停止读取
             break;
         }
     }
@@ -1103,14 +1130,17 @@ adj_graph* createGraphfromfile(const string& filename)
         return nullptr;
     }
     int vertexnum = getNextValidNumber(infile);
-    if (vertexnum == -1) { 
+    if (vertexnum == -1) 
+    { 
         cerr << "File is empty or has no valid vertex number!" << endl;
         infile.close();
         return nullptr;
     }
     const int MAX_VERTEX_NUM = 50;
-    if (vertexnum <= 0 || vertexnum > MAX_VERTEX_NUM) {
-        if (vertexnum <= 0) {
+    if (vertexnum <= 0 || vertexnum > MAX_VERTEX_NUM) 
+    {
+        if (vertexnum <= 0) 
+        {
             cerr << "Invalid vertex number: " << vertexnum << " (must be positive integer)" << endl;
         }
         else {
@@ -1120,25 +1150,28 @@ adj_graph* createGraphfromfile(const string& filename)
         return nullptr;
     }
     graph = new adj_graph(vertexnum);
-    if (!graph) {
+    if (!graph) 
+    {
         cout << "Failed to create adj_graph object!" << endl;
         infile.close();
         return nullptr;
     }
     int srcNum, destNum;
-    while (true) {
+    while (true) 
+    {
         srcNum = getNextValidNumber(infile);
-        if (srcNum == -1) {
+        if (srcNum == -1) 
+        {
             break;
         }
         destNum = getNextValidNumber(infile);
-        if (destNum == -1) {
+        if (destNum == -1) 
+        {
             cout<< "Warning: Only one valid number remains at the end of the file, cannot build edge!" << endl;
             break;
         }
         graph->add_edge(srcNum, destNum);
     }
-
     infile.close();
     return graph;
 }
@@ -1176,9 +1209,9 @@ private:
     int windowHeight;
     struct ButtonInfo { int x, y, w, h; wstring text; bool hover; };
     vector<ButtonInfo> mainButtons;
-
 public:
-    GraphMainUI() {
+    GraphMainUI()
+    {
         windowWidth = 1200;
         windowHeight = 800;
         initgraph(windowWidth, windowHeight);
@@ -1187,19 +1220,19 @@ public:
         prepareMainButtons();
     }
 
-    ~GraphMainUI() {
+    ~GraphMainUI()
+    {
         EnsureGraphicsClose();
     }
 
-    // 初始化一级界面按钮（三种创建方式+退出）
-    void prepareMainButtons() {
+    void prepareMainButtons()       // 初始化一级界面按钮
+    {
         mainButtons.clear();
         int buttonW = 300;
         int buttonH = 60;
         int centerX = windowWidth / 2;
         int startY = 200;
         int spacing = 80;
-
         // 按钮1：手动创建
         mainButtons.push_back({ centerX - buttonW / 2, startY, buttonW, buttonH, L"1. Create Graph by Hand", false });
         // 按钮2：随机创建
@@ -1210,17 +1243,18 @@ public:
         mainButtons.push_back({ centerX - buttonW / 2, startY + 3 * spacing, buttonW, buttonH, L"4. Exit Program", false });
     }
 
-    // 绘制一级界面按钮（风格与二级界面统一）
-    void drawMainButton(const ButtonInfo& b) {
-        if (b.hover) {
+    void drawMainButton(const ButtonInfo& b)             // 绘制一级界面按钮
+    {
+        if (b.hover)
+        {
             setfillcolor(BUTTON_HOVER_COLOR);
         }
-        else {
+        else 
+        {
             setfillcolor(BUTTON_COLOR);
         }
         setlinecolor(RGB(50, 50, 50));
         fillroundrect(b.x, b.y, b.x + b.w, b.y + b.h, 10, 10);
-
         settextcolor(WHITE);
         settextstyle(24, 0, _T("Arial"));
         setbkmode(TRANSPARENT);
@@ -1229,76 +1263,81 @@ public:
         outtextxy(b.x + (b.w - textWidth) / 2, b.y + (b.h - textHeight) / 2, b.text.c_str());
     }
 
-    // 绘制一级界面整体布局
-    void drawMainUI() {
+    void drawMainUI()             // 绘制一级界面
+    {
         cleardevice();
-
-        // 绘制标题
+        //标题
         settextcolor(TEXT_COLOR);
         settextstyle(48, 0, _T("Arial"));
         setbkmode(TRANSPARENT);
         wstring title = L"Graph Creation Main Interface";
         int titleWidth = textwidth(title.c_str());
         outtextxy((windowWidth - titleWidth) / 2, 80, title.c_str());
-
-        // 绘制按钮
+        // 按钮
         prepareMainButtons();
-        for (const auto& btn : mainButtons) {
+        for (const auto& btn : mainButtons) 
+        {
             drawMainButton(btn);
         }
-
         FlushBatchDraw();
     }
 
-    // 处理一级界面鼠标交互
-    int processMainMouseInput() {
+    int processMainMouseInput()                 // 处理一级界面鼠标交互
+    {
         bool anyMouse = false;
         MOUSEMSG m;
         MOUSEMSG lastMsg = { 0 };
-        while (MouseHit()) {
+        while (MouseHit()) 
+        {
             m = GetMouseMsg();
             lastMsg = m;
             anyMouse = true;
         }
-
-        if (!anyMouse) return 0;
-
+        if (!anyMouse) 
+            return 0;
         int mx = lastMsg.x;
         int my = lastMsg.y;
-        for (auto& btn : mainButtons) {
+        for (auto& btn : mainButtons) 
+        {
             btn.hover = (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h);
         }
-
         // 处理按钮点击
-        if (lastMsg.uMsg == WM_LBUTTONDOWN) {
+        if (lastMsg.uMsg == WM_LBUTTONDOWN) 
+        {
             if (mx >= mainButtons[0].x && mx <= mainButtons[0].x + mainButtons[0].w &&
-                my >= mainButtons[0].y && my <= mainButtons[0].y + mainButtons[0].h) {
+                my >= mainButtons[0].y && my <= mainButtons[0].y + mainButtons[0].h) 
+            {
                 return 1; // 手动创建
             }
             else if (mx >= mainButtons[1].x && mx <= mainButtons[1].x + mainButtons[1].w &&
-                my >= mainButtons[1].y && my <= mainButtons[1].y + mainButtons[1].h) {
+                my >= mainButtons[1].y && my <= mainButtons[1].y + mainButtons[1].h) 
+            {
                 return 2; // 随机创建
             }
             else if (mx >= mainButtons[2].x && mx <= mainButtons[2].x + mainButtons[2].w &&
-                my >= mainButtons[2].y && my <= mainButtons[2].y + mainButtons[2].h) {
+                my >= mainButtons[2].y && my <= mainButtons[2].y + mainButtons[2].h) 
+            {
                 return 3; // 文件创建
             }
             else if (mx >= mainButtons[3].x && mx <= mainButtons[3].x + mainButtons[3].w &&
-                my >= mainButtons[3].y && my <= mainButtons[3].y + mainButtons[3].h) {
+                my >= mainButtons[3].y && my <= mainButtons[3].y + mainButtons[3].h) 
+            {
                 return -1; // 退出程序
             }
         }
         return 0;
     }
 
-    // 运行一级界面
-    int runMainUI() {
+    int runMainUI()                     // 运行一级界面
+    {
         BeginBatchDraw();
         int choice = 0;
-        while (true) {
+        while (true) 
+        {
             drawMainUI();
             choice = processMainMouseInput();
-            if (choice != 0) {
+            if (choice != 0) 
+            {
                 break;
             }
         }
