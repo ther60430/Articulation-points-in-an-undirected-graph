@@ -9,6 +9,7 @@
 #include <iostream>
 #include <algorithm>
 #include <cstdlib>
+#include <cmath>
 #include <ctime>
 using namespace std;
 
@@ -428,7 +429,7 @@ private:
     bool isTransformed;
     int transformMethod;
 
-    // 按钮交互相关（原有）
+    // 按钮交互相关
     struct ButtonInfo { int x, y, w, h; wstring text; bool hover; bool disabled; };
     vector<ButtonInfo> buttons;
 
@@ -446,7 +447,7 @@ public:
 
         calculateNodePositions();
 
-        // 初始化按钮（包含新增返回按钮）
+        //初始化按钮
         prepareButtons();
     }
 
@@ -703,7 +704,6 @@ public:
                 cout << "Copying nodes..." << endl;
                 adj_graph* tempGraph = new adj_graph(*graph);
                 tempGraph->transform_cut_vertex(1);
-
                 delete graph;
                 graph = tempGraph;
                 isTransformed = true;
@@ -711,7 +711,7 @@ public:
                 cout << "Nodes copied successfully!" << endl;
                 calculateNodePositions();
             }
-            // 新增：处理返回一级界面按钮
+            //处理返回一级界面按钮
             else if (pointInRect(mx, my, buttons[5])) {
                 return 2; // 标识返回一级界面
             }
@@ -721,16 +721,14 @@ public:
     }
 
     void drawControls() {
-        prepareButtons();
         for (const auto& b : buttons) {
             drawButton(b);
         }
     }
 
-    // 改造：返回状态值，支持回退一级界面
+    //返回状态值，支持回退一级界面
     int render() {
         cleardevice();
-
         // 绘制所有边
         for (int i = 0; i < graph->vertexnum; i++) {
             EdgeNode* cur = graph->adjlist[i].firstnode;
@@ -760,30 +758,29 @@ public:
         outtextxy(50, 80, subtitle.c_str());
 
         FlushBatchDraw();
-        if (count == -1) {
-            return -1; // 退出程序
-        }
+
+        // 仅保留Return按钮的返回状态，删除无效的-1判断
         if (count == 2) {
             return 2; // 回退一级界面
         }
         return 0;
     }
 
-    // 改造：运行逻辑，支持返回一级界面
+    //运行逻辑，支持返回一级界面
     int run() {
         BeginBatchDraw();
 
         // 初始计算割点
         graph->find_cut_vertex();
         cout << "Initial cut vertices: " << graph->get_cut_vertex_count() << endl;
-        int c;
+        int c=0;
         while (true) {
             c = render();
-            if (c == -1 || c == 2) { // 退出或返回一级界面
+            if (c == 2) { // 退出或返回一级界面
                 break;
             }
         }
-        EndBatchDraw(); // 补充原有缺失的EndBatchDraw
+        EndBatchDraw(); //原有缺失的EndBatchDraw
         return c; // 返回状态，供main函数判断
     }
 };
