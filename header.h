@@ -13,6 +13,24 @@
 #include <ctime>
 using namespace std;
 
+// 引入全局图形引用计数，防止多次 init/close 导致异常
+static int s_graphicsRefCount = 0;
+static void EnsureGraphicsInit(int width, int height)
+{
+    if (s_graphicsRefCount == 0) {
+        initgraph(width, height);
+    }
+    ++s_graphicsRefCount;
+}
+static void EnsureGraphicsClose()
+{
+    if (s_graphicsRefCount <= 0) return;
+    --s_graphicsRefCount;
+    if (s_graphicsRefCount == 0) {
+        closegraph();
+    }
+}
+
 // 颜色定义
 const COLORREF BACKGROUND_COLOR = RGB(240, 245, 250);
 const COLORREF NODE_COLOR = RGB(70, 130, 180);
@@ -439,7 +457,8 @@ public:
         isTransformed(false), transformMethod(0) {
         windowWidth = 1200;
         windowHeight = 800;
-        initgraph(windowWidth, windowHeight);
+        // 使用引用计数保证 initgraph/closegraph 配对
+        EnsureGraphicsInit(windowWidth, windowHeight);
         setbkcolor(BACKGROUND_COLOR);
         cleardevice();
 
@@ -452,8 +471,11 @@ public:
     }
 
     ~GraphVisualizer() {
-        closegraph();
+        
         delete originalGraph;
+        // 删除当前图对象，GraphVisualizer 对传入的 graph 拥有所有权
+        delete graph;
+        EnsureGraphicsClose();
     }
 
     void calculateNodePositions() {
@@ -794,48 +816,228 @@ int charToNum(char ch)
     return -1;
 }
 
-adj_graph* createGraphbyhand() 
+adj_graph* createGraphbyhand()
 {
-    adj_graph* graph;
-    int num;
-	cout << "input the vertex number(>0):";
-    while (true)
-    {
-        cin >> num;
-        if (!num||num<0)
-        {
-            cout << "invalid input, please input again" << endl;
-            cin.clear();
-            cin.ignore(65535,'\n');
+    EnsureGraphicsInit(1200, 800);
+    setbkcolor(BACKGROUND_COLOR);
+    cleardevice();
+    int boxX = 150, boxY = 120, boxW = 900, boxH = 560;
+    setfillcolor(RGB(255, 255, 255));
+    setlinecolor(RGB(180, 180, 180));
+    fillroundrect(boxX, boxY, boxX + boxW, boxY + boxH, 8, 8);
+    settextcolor(TEXT_COLOR);
+    settextstyle(28, 0, _T("Arial"));
+    outtextxy(boxX + 20, boxY + 20, L"Create Graph by Hand (Graphical Input)");
+
+    settextstyle(18, 0, _T("Arial"));
+    outtextxy(boxX + 20, boxY + 60, L"Step 1: 输入顶点数（1 ~ 50），按 Enter 确认。");
+    outtextxy(boxX + 20, boxY + 90, L"Step 2: 在下面文本框中逐行输入边：'src dest'（例如：0 1），");
+    outtextxy(boxX + 20, boxY + 115, L"点击 Done 按钮结束输入。");
+    int vx = boxX + 20, vy = boxY + 150, vw = 300, vh = 36;
+    setfillcolor(RGB(245, 245, 245));
+    fillrectangle(vx, vy, vx + vw, vy + vh);
+    setlinecolor(RGB(200, 200, 200));
+    rectangle(vx, vy, vx + vw, vy + vh);
+
+    int tx = boxX + 20, ty = vy + vh + 20, tw = boxW - 40, th = 300;
+    setfillcolor(RGB(250, 250, 250));
+    fillrectangle(tx, ty, tx + tw, ty + th);
+    setlinecolor(RGB(200, 200, 200));
+    rectangle(tx, ty, tx + tw, ty + th);
+
+    // Done / Cancel 按钮
+    int btnW = 120, btnH = 40;
+    int doneX = boxX + boxW - btnW - 20, doneY = boxY + boxH - btnH - 20;
+    int cancelX = doneX - btnW - 20, cancelY = doneY;
+
+    auto drawButtons = [&]() {
+        setfillcolor(BUTTON_COLOR);
+        fillroundrect(cancelX, cancelY, cancelX + btnW, cancelY + btnH, 6, 6);
+        settextstyle(18, 0, _T("Arial"));
+        outtextxy(cancelX + 30, cancelY + 10, L"Cancel");
+        setfillcolor(BUTTON_COLOR);
+        fillroundrect(doneX, doneY, doneX + btnW, doneY + btnH, 6, 6);
+        outtextxy(doneX + 35, doneY + 10, L"Done");
+        };
+
+    drawButtons();
+    string vertexStr;
+    bool vertexConfirmed = false;
+    auto refreshVertexBox = [&]() {
+        setfillcolor(RGB(245, 245, 245));
+        fillrectangle(vx + 1, vy + 1, vx + vw - 1, vy + vh - 1);
+        settextcolor(RGB(0, 0, 0));
+        settextstyle(20, 0, _T("Arial"));
+        wstring ws(vertexStr.begin(), vertexStr.end());
+        outtextxy(vx + 8, vy + 6, ws.c_str());
+        FlushBatchDraw();
+        };
+
+    vector<string> lines;
+    string curLine;
+    auto refreshTextArea = [&]() {
+        setfillcolor(RGB(250, 250, 250));
+        fillrectangle(tx + 1, ty + 1, tx + tw - 1, ty + th - 1);
+        settextcolor(RGB(0, 0, 0));
+        settextstyle(16, 0, _T("Arial"));
+        int lineY = ty + 6;
+        int maxLines = th / 20;
+        for (int i = 0; i < (int)lines.size() && i < maxLines - 1; ++i) {
+            wstring ws(lines[i].begin(), lines[i].end());
+            outtextxy(tx + 6, lineY + i * 20, ws.c_str());
         }
-        else if (num > 50)
-        {
-			cout << "the vertex number is excessive (max:50), please input again" << endl;
+        if ((int)lines.size() < maxLines - 1) {
+            wstring wsCur(curLine.begin(), curLine.end());
+            outtextxy(tx + 6, lineY + (int)lines.size() * 20, wsCur.c_str());
         }
-        else if (num > 0)
-            break;
+        FlushBatchDraw();
+        };
+    bool aborted = false;
+    bool keyPrev[256] = { 0 };
+    auto keyPressedOnce = [&](int vk) -> bool {
+        SHORT st = GetAsyncKeyState(vk);
+        bool pressed = (st & 0x8000) != 0;
+        if (pressed && !keyPrev[vk]) { keyPrev[vk] = true; return true; }
+        if (!pressed) keyPrev[vk] = false;
+        return false;
+        };
+    // 顶点数输入循环（只接收数字、Backspace、Enter、Cancel）
+    while (!vertexConfirmed && !aborted) {
+        refreshVertexBox();
+        // 鼠标点击 Cancel
+        while (MouseHit()) {
+            MOUSEMSG mm = GetMouseMsg();
+            if (mm.uMsg == WM_LBUTTONDOWN) {
+                if (mm.x >= cancelX && mm.x <= cancelX + btnW && mm.y >= cancelY && mm.y <= cancelY + btnH) {
+                    aborted = true;
+                    break;
+                }
+            }
+        }
+        // 数字按键（0-9）
+        for (int k = '0'; k <= '9'; ++k) {
+            if (keyPressedOnce(k)) {
+                if (vertexStr.size() < 3) vertexStr.push_back((char)k);
+            }
+        }
+        for (int k = VK_NUMPAD0; k <= VK_NUMPAD9; ++k) {
+            if (keyPressedOnce(k)) {
+                int digit = k - VK_NUMPAD0;
+                if (vertexStr.size() < 3) vertexStr.push_back(char('0' + digit));
+            }
+        }
+        if (keyPressedOnce(VK_BACK)) {
+            if (!vertexStr.empty()) vertexStr.pop_back();
+        }
+        if (keyPressedOnce(VK_RETURN)) {
+            if (!vertexStr.empty()) {
+                int n = atoi(vertexStr.c_str());
+                if (n > 0 && n <= 50) {
+                    vertexConfirmed = true;
+                }
+                else {
+                    settextcolor(RGB(200, 0, 0));
+                    outtextxy(vx + vw + 10, vy + 6, L"Invalid (1-50)");
+                    FlushBatchDraw();
+                    Sleep(700);
+                    setfillcolor(BACKGROUND_COLOR);
+                    fillrectangle(vx + vw + 10, vy + 6, vx + vw + 160, vy + 28);
+                    settextcolor(RGB(0, 0, 0));
+                }
+            }
+        }
+        if (keyPressedOnce(VK_ESCAPE)) {
+            aborted = true;
+        }
+        Sleep(10);
     }
-    graph = new adj_graph(num);
-    while (true)
-    {
-        cout << "input the edge(-1 -1 is end):";
-        int src, dest;
-        if (!(cin >> src >> dest))
-        {
-            cout << "invalid input, please input again" << endl;
-            cin.clear();
-            cin.ignore(65535, '\n');
+
+    if (aborted) {
+        // 恢复屏幕并关闭临时图形上下文
+        cleardevice();
+        EnsureGraphicsClose();
+        return nullptr;
+    }
+
+    int num = atoi(vertexStr.c_str());
+    adj_graph* graph = new adj_graph(num);
+
+    refreshTextArea();
+    bool done = false;
+    while (!done && !aborted) {
+        refreshTextArea();
+        // 处理鼠标（点击 Done / Cancel）
+        while (MouseHit()) {
+            MOUSEMSG mm = GetMouseMsg();
+            if (mm.uMsg == WM_LBUTTONDOWN) {
+                if (mm.x >= doneX && mm.x <= doneX + btnW && mm.y >= doneY && mm.y <= doneY + btnH) {
+                    if (!curLine.empty()) lines.push_back(curLine);
+                    done = true;
+                    break;
+                }
+                if (mm.x >= cancelX && mm.x <= cancelX + btnW && mm.y >= cancelY && mm.y <= cancelY + btnH) {
+                    aborted = true;
+                    break;
+                }
+            }
+        }
+        // 数字按键
+        for (int k = '0'; k <= '9'; ++k) {
+            if (keyPressedOnce(k)) curLine.push_back((char)k);
+        }
+
+        for (int k = VK_NUMPAD0; k <= VK_NUMPAD9; ++k) {
+            if (keyPressedOnce(k)) {
+                int digit = k - VK_NUMPAD0;
+                curLine.push_back(char('0' + digit));
+            }
+        }
+        if (keyPressedOnce(VK_SPACE)) curLine.push_back(' ');
+        if (keyPressedOnce(VK_BACK)) {
+            if (!curLine.empty()) curLine.pop_back();
+            else if (!lines.empty()) { curLine = lines.back(); lines.pop_back(); }
+        }
+        if (keyPressedOnce(VK_RETURN)) {
+            if (!curLine.empty()) lines.push_back(curLine);
+            curLine.clear();
+        }
+        if (keyPressedOnce(VK_ESCAPE)) {
+            aborted = true;
+            break;
+        }
+        Sleep(10);
+    }
+
+    if (aborted) {
+        delete graph;
+        cleardevice();
+        EnsureGraphicsClose();
+        return nullptr;
+    }
+
+    // 解析每行边并添加
+    for (const string& ln : lines) {
+        if (ln.empty()) continue;
+        // 提取两个整数
+        istringstream iss(ln);
+        int s, d;
+        if (!(iss >> s >> d)) {
+            // 跳过解析失败的行
             continue;
         }
-        if (src == -1 && dest == -1)
-            break;
-        if (src < 0 || dest < 0 || src >= num || dest >= num)
-        {
-            cout << "invalid input (out of range), please input again" << endl;
+        if (s < 0 || d < 0 || s >= num || d >= num) {
+            // 越界则跳过
             continue;
         }
-        graph->add_edge(src, dest);
+        graph->add_edge(s, d);
     }
+
+    // 清理界面
+    cleardevice();
+    FlushBatchDraw();
+
+   
+    EnsureGraphicsClose();
     return graph;
 }
 
@@ -986,7 +1188,7 @@ public:
     }
 
     ~GraphMainUI() {
-        closegraph();
+        EnsureGraphicsClose();
     }
 
     // 初始化一级界面按钮（三种创建方式+退出）

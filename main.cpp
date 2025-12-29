@@ -28,10 +28,14 @@ int main() {
         GraphVisualizer visualizer(graph);
         int status = visualizer.run(); // 捕获二级界面返回状态（2=返回一级，-1=退出程序）
 
-        // 5. 释放图资源
+        // 释放资源
         delete graph;
         graph = nullptr;
-        // 若status==2，直接进入下一次循环，重新运行一级界面（无需额外操作）
+
+        if (status == -1) { // 二级界面选择退出程序
+            break;
+        }
+        // 状态为2时，返回一级界面，继续循环
     }
 
     cout << "Program exited normally." << endl;
