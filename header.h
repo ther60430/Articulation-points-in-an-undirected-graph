@@ -428,10 +428,11 @@ private:
     bool isTransformed;
     int transformMethod;
 
-    // 按钮交互相关
+    // 按钮交互相关（原有）
     struct ButtonInfo { int x, y, w, h; wstring text; bool hover; bool disabled; };
     vector<ButtonInfo> buttons;
 
+    // 新增：返回一级界面的标识（无需额外成员，复用按钮数组即可）
 public:
     GraphVisualizer(adj_graph* g) : graph(g), showCutVertices(true), showDFSInfo(false),
         isTransformed(false), transformMethod(0) {
@@ -445,7 +446,7 @@ public:
 
         calculateNodePositions();
 
-        // 初始化按钮
+        // 初始化按钮（包含新增返回按钮）
         prepareButtons();
     }
 
@@ -458,9 +459,9 @@ public:
 
     void calculateNodePositions() {
         nodePositions.clear();
-        int centerX = windowWidth / 2;
+        int centerX = windowWidth / 2-100;
         int centerY = windowHeight / 2;
-        int radius = min(centerX, centerY) - 150;
+        int radius = 250;
 
         for (int i = 0; i < graph->vertexnum; i++) {
             double angle = 2 * 3.1415926 * i / graph->vertexnum;
@@ -593,7 +594,7 @@ public:
         }
     }
 
-    // 将按钮布局与文本统一准备
+    //新增返回按钮，保持原有按钮布局不变
     void prepareButtons() {
         buttons.clear();
         int buttonY = windowHeight - 120;
@@ -607,19 +608,18 @@ public:
         int x3 = x2 + buttonWidth + spacing;
         int x4 = x3 + buttonWidth + spacing;
         int x5 = x4 + buttonWidth + spacing;
-		int x6 = x5 + buttonWidth + spacing;
+        int x6 = x5 + buttonWidth + spacing;
 
+        // 6个按钮
         buttons.resize(6);
         buttons[0] = { x1, buttonY, buttonWidth, buttonHeight, showCutVertices ? L"Hide Cut Vertices" : L"Show Cut Vertices", false, false };
         buttons[1] = { x2, buttonY, buttonWidth, buttonHeight, showDFSInfo ? L"Hide DFS Info" : L"Show DFS Info", false, false };
         buttons[2] = { x3, buttonY, buttonWidth, buttonHeight, L"Find Cut Vertices", false, false };
         buttons[3] = { x4, buttonY, buttonWidth, buttonHeight, isTransformed ? L"Reset Graph" : L"Add Redundant Edges", false, false };
-        // Copy Nodes 在已转换时禁用
         buttons[4] = { x5, buttonY, buttonWidth, buttonHeight, L"Copy Nodes", false, isTransformed };
-		buttons[5] = { x6, buttonY, exitWidth, buttonHeight, L"Exit", false, false };
+        buttons[5] = { x6, buttonY, exitWidth, buttonHeight, L"Return", false, false };
     }
 
-    // 绘制单个按钮，不再在这里读取鼠标事件
     void drawButton(const ButtonInfo& b) {
         if (b.disabled) {
             setfillcolor(BUTTON_DISABLED_COLOR);
@@ -641,16 +641,15 @@ public:
         outtextxy(b.x + (b.w - textWidth) / 2, b.y + (b.h - textHeight) / 2, b.text.c_str());
     }
 
-    // 判断点是否在按钮区域内
+    // 原有点在矩形内判断，无改动
     static bool pointInRect(int px, int py, const ButtonInfo& b) {
         return (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h);
     }
 
-    // 仅在这里读取并处理鼠标消息，避免重复消费
-int processMouseInput() {
+    //处理返回按钮点击，返回2表示回退到一级界面
+    int processMouseInput() {
         bool anyMouse = false;
         MOUSEMSG m;
-        // 读取所有可用的鼠标消息，保留最后一条用于 hover / click 处理
         MOUSEMSG lastMsg = { 0 };
         while (MouseHit()) {
             m = GetMouseMsg();
@@ -658,36 +657,29 @@ int processMouseInput() {
             anyMouse = true;
         }
 
-        // 如果没有鼠标消息则不修改 hover（避免消耗其他地方的事件）
         if (!anyMouse) return 0;
 
-        // 更新 hover 状态（基于最后一条消息的位置）
         int mx = lastMsg.x;
         int my = lastMsg.y;
         for (auto& btn : buttons) {
             btn.hover = (!btn.disabled) && pointInRect(mx, my, btn);
         }
 
-        // 处理点击：只在最后消息为左键按下时触发（避免多次触发）
         if (lastMsg.uMsg == WM_LBUTTONDOWN) {
-            // 按钮 0: 显示/隐藏割点
             if (pointInRect(mx, my, buttons[0])) {
                 showCutVertices = !showCutVertices;
                 cout << "Toggled cut vertices display: " << (showCutVertices ? "ON" : "OFF") << endl;
             }
-            // 按钮 1: 显示/隐藏 DFS 信息
             else if (pointInRect(mx, my, buttons[1])) {
                 showDFSInfo = !showDFSInfo;
                 cout << "Toggled DFS info display: " << (showDFSInfo ? "ON" : "OFF") << endl;
             }
-            // 按钮 2: 计算割点
             else if (pointInRect(mx, my, buttons[2])) {
                 cout << "Finding cut vertices..." << endl;
                 graph->find_cut_vertex();
                 int cutCount = graph->get_cut_vertex_count();
                 cout << "Found " << cutCount << " cut vertices" << endl;
             }
-            // 按钮 3: 添加冗余边或重置
             else if (pointInRect(mx, my, buttons[3])) {
                 if (!isTransformed) {
                     cout << "Adding redundant edges..." << endl;
@@ -709,7 +701,6 @@ int processMouseInput() {
                 }
                 calculateNodePositions();
             }
-            // 按钮 4: 复制节点（仅当未转换且按钮未禁用时）
             else if (pointInRect(mx, my, buttons[4]) && !buttons[4].disabled) {
                 cout << "Copying nodes..." << endl;
                 adj_graph* tempGraph = new adj_graph(*graph);
@@ -722,23 +713,23 @@ int processMouseInput() {
                 cout << "Nodes copied successfully!" << endl;
                 calculateNodePositions();
             }
-            else if (pointInRect(mx, my, buttons[5])) 
-            {
-                return -1;
+            // 新增：处理返回一级界面按钮
+            else if (pointInRect(mx, my, buttons[5])) {
+                return 2; // 标识返回一级界面
             }
-            // 点击后更新按钮文本和可用性
             prepareButtons();
         }
+        return 0;
     }
 
     void drawControls() {
-        // 每次绘制前确保按钮文本和位置同步
         prepareButtons();
         for (const auto& b : buttons) {
             drawButton(b);
         }
     }
 
+    // 改造：返回状态值，支持回退一级界面
     int render() {
         cleardevice();
 
@@ -760,7 +751,7 @@ int processMouseInput() {
 
         drawInfoPanel();
         drawControls();
-        int count=processMouseInput();  // 处理鼠标输入（现在只在此处读取鼠标事件）
+        int count = processMouseInput();
         settextcolor(TEXT_COLOR);
         settextstyle(32, 0, _T("Arial"));
         outtextxy(50, 30, L"Graph Visualization");
@@ -771,29 +762,31 @@ int processMouseInput() {
         outtextxy(50, 80, subtitle.c_str());
 
         FlushBatchDraw();
-        if (count == -1)
-        {
-            return -1;
+        if (count == -1) {
+            return -1; // 退出程序
         }
+        if (count == 2) {
+            return 2; // 回退一级界面
+        }
+        return 0;
     }
-    
-    void run() {
+
+    // 改造：运行逻辑，支持返回一级界面
+    int run() {
         BeginBatchDraw();
-        
+
         // 初始计算割点
         graph->find_cut_vertex();
         cout << "Initial cut vertices: " << graph->get_cut_vertex_count() << endl;
         int c;
         while (true) {
-            c=render();
-            if(c==-1)
-            {
+            c = render();
+            if (c == -1 || c == 2) { // 退出或返回一级界面
                 break;
-			}
-           /* Sleep(50);*/
+            }
         }
-
-        /*EndBatchDraw();*/
+        EndBatchDraw(); // 补充原有缺失的EndBatchDraw
+        return c; // 返回状态，供main函数判断
     }
 };
 
@@ -810,32 +803,40 @@ adj_graph* createGraphbyhand()
 {
     adj_graph* graph;
     int num;
-	cout << "input the vertex number:" << endl;
+	cout << "input the vertex number(>0):";
     while (true)
     {
         cin >> num;
-        if (!num)
+        if (!num||num<0)
         {
             cout << "invalid input, please input again" << endl;
             cin.clear();
-            cin.ignore(25565,'\n');
+            cin.ignore(65535,'\n');
+        }
+        else if (num > 50)
+        {
+			cout << "the vertex number is excessive (max:50), please input again" << endl;
         }
         else if (num > 0)
             break;
     }
     graph = new adj_graph(num);
-    cout << "input the edge(-1 -1 is end):" << endl;
     while (true)
     {
+        cout << "input the edge(-1 -1 is end):";
         int src, dest;
-        cin >> src >> dest;
+        if (!(cin >> src >> dest))
+        {
+            cout << "invalid input, please input again" << endl;
+            cin.clear();
+            cin.ignore(65535, '\n');
+            continue;
+        }
         if (src == -1 && dest == -1)
             break;
         if (src < 0 || dest < 0 || src >= num || dest >= num)
         {
-            cout << "invalid input, please input again" << endl;
-            cin.clear();
-            cin.ignore(25565, '\n');
+            cout << "invalid input (out of range), please input again" << endl;
             continue;
         }
         graph->add_edge(src, dest);
@@ -864,7 +865,7 @@ adj_graph* createRandomGraph()
 }
 
 int getNextValidNumber(ifstream& infile) {
-    string numStr; // 存储连续数字字符
+    string numStr;
     char ch;
     //跳过所有非数字字符
     while (true) {
@@ -971,3 +972,140 @@ adj_graph* InitializeGraph(int method)
     }
     return graph;
 }
+
+class GraphMainUI {
+private:
+    int windowWidth;
+    int windowHeight;
+    struct ButtonInfo { int x, y, w, h; wstring text; bool hover; };
+    vector<ButtonInfo> mainButtons;
+
+public:
+    GraphMainUI() {
+        windowWidth = 1200;
+        windowHeight = 800;
+        initgraph(windowWidth, windowHeight);
+        setbkcolor(BACKGROUND_COLOR);
+        cleardevice();
+        prepareMainButtons();
+    }
+
+    ~GraphMainUI() {
+        closegraph();
+    }
+
+    // 初始化一级界面按钮（三种创建方式+退出）
+    void prepareMainButtons() {
+        mainButtons.clear();
+        int buttonW = 300;
+        int buttonH = 60;
+        int centerX = windowWidth / 2;
+        int startY = 200;
+        int spacing = 80;
+
+        // 按钮1：手动创建
+        mainButtons.push_back({ centerX - buttonW / 2, startY, buttonW, buttonH, L"1. Create Graph by Hand", false });
+        // 按钮2：随机创建
+        mainButtons.push_back({ centerX - buttonW / 2, startY + spacing, buttonW, buttonH, L"2. Create Random Graph", false });
+        // 按钮3：文件创建
+        mainButtons.push_back({ centerX - buttonW / 2, startY + 2 * spacing, buttonW, buttonH, L"3. Create Graph from File", false });
+        // 按钮4：退出程序
+        mainButtons.push_back({ centerX - buttonW / 2, startY + 3 * spacing, buttonW, buttonH, L"4. Exit Program", false });
+    }
+
+    // 绘制一级界面按钮（风格与二级界面统一）
+    void drawMainButton(const ButtonInfo& b) {
+        if (b.hover) {
+            setfillcolor(BUTTON_HOVER_COLOR);
+        }
+        else {
+            setfillcolor(BUTTON_COLOR);
+        }
+        setlinecolor(RGB(50, 50, 50));
+        fillroundrect(b.x, b.y, b.x + b.w, b.y + b.h, 10, 10);
+
+        settextcolor(WHITE);
+        settextstyle(24, 0, _T("Arial"));
+        setbkmode(TRANSPARENT);
+        int textWidth = textwidth(b.text.c_str());
+        int textHeight = textheight(b.text.c_str());
+        outtextxy(b.x + (b.w - textWidth) / 2, b.y + (b.h - textHeight) / 2, b.text.c_str());
+    }
+
+    // 绘制一级界面整体布局
+    void drawMainUI() {
+        cleardevice();
+
+        // 绘制标题
+        settextcolor(TEXT_COLOR);
+        settextstyle(48, 0, _T("Arial"));
+        setbkmode(TRANSPARENT);
+        wstring title = L"Graph Creation Main Interface";
+        int titleWidth = textwidth(title.c_str());
+        outtextxy((windowWidth - titleWidth) / 2, 80, title.c_str());
+
+        // 绘制按钮
+        prepareMainButtons();
+        for (const auto& btn : mainButtons) {
+            drawMainButton(btn);
+        }
+
+        FlushBatchDraw();
+    }
+
+    // 处理一级界面鼠标交互
+    int processMainMouseInput() {
+        bool anyMouse = false;
+        MOUSEMSG m;
+        MOUSEMSG lastMsg = { 0 };
+        while (MouseHit()) {
+            m = GetMouseMsg();
+            lastMsg = m;
+            anyMouse = true;
+        }
+
+        if (!anyMouse) return 0;
+
+        int mx = lastMsg.x;
+        int my = lastMsg.y;
+        for (auto& btn : mainButtons) {
+            btn.hover = (mx >= btn.x && mx <= btn.x + btn.w && my >= btn.y && my <= btn.y + btn.h);
+        }
+
+        // 处理按钮点击
+        if (lastMsg.uMsg == WM_LBUTTONDOWN) {
+            if (mx >= mainButtons[0].x && mx <= mainButtons[0].x + mainButtons[0].w &&
+                my >= mainButtons[0].y && my <= mainButtons[0].y + mainButtons[0].h) {
+                return 1; // 手动创建
+            }
+            else if (mx >= mainButtons[1].x && mx <= mainButtons[1].x + mainButtons[1].w &&
+                my >= mainButtons[1].y && my <= mainButtons[1].y + mainButtons[1].h) {
+                return 2; // 随机创建
+            }
+            else if (mx >= mainButtons[2].x && mx <= mainButtons[2].x + mainButtons[2].w &&
+                my >= mainButtons[2].y && my <= mainButtons[2].y + mainButtons[2].h) {
+                return 3; // 文件创建
+            }
+            else if (mx >= mainButtons[3].x && mx <= mainButtons[3].x + mainButtons[3].w &&
+                my >= mainButtons[3].y && my <= mainButtons[3].y + mainButtons[3].h) {
+                return -1; // 退出程序
+            }
+        }
+        return 0;
+    }
+
+    // 运行一级界面
+    int runMainUI() {
+        BeginBatchDraw();
+        int choice = 0;
+        while (true) {
+            drawMainUI();
+            choice = processMainMouseInput();
+            if (choice != 0) {
+                break;
+            }
+        }
+        EndBatchDraw();
+        return choice;
+    }
+};
