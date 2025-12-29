@@ -1,29 +1,39 @@
 #include"header.h"
 int main() {
     system("chcp 65001 > nul");
-    while (true)
-    {
-        cout << "input method:\n";
-        cout << "1:create graph by hand\n";
-        cout << "2:create random graph\n";
-        cout << "3:create graph from file\n";
-        cout << "4.Esc\n";
-		cout << "Your choice (1-4): ";
-        int method;
-        cin >> method;
-        if(!method || method < 1 || method > 4) {
-            cout << "Invalid input! Please input again (1-4): ";
-            cin.clear();
-            cin.ignore(25565, '\n');
+    system("cls");
+
+    while (true) {
+        // 运行一级界面
+        GraphMainUI mainUI;
+        int method = mainUI.runMainUI();
+
+        if (method == -1) { // 退出程序
+            break;
+        }
+        if (method < 1 || method > 3) { // 无效选择
             continue;
         }
-        if(method == 4) {
-            break;
-		}
+
+        // 初始化图，进入二级可视化界面
         adj_graph* graph = InitializeGraph(method);
+        if (graph == nullptr) {
+            cout << "Failed to create graph, return to main UI." << endl;
+            continue;
+        }
+
         GraphVisualizer visualizer(graph);
-        visualizer.run();
-        graph->~adj_graph();
+        int status = visualizer.run(); // 运行二级界面，获取状态
+
+        // 释放资源
+        delete graph;
         graph = nullptr;
+
+        if (status == -1) { // 二级界面选择退出程序
+            break;
+        }
+        // 状态为2时，返回一级界面，继续循环
     }
+
+    return 0;
 }
