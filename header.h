@@ -12,6 +12,24 @@
 #include <ctime>
 using namespace std;
 
+// 引入全局图形引用计数，防止多次 init/close 导致异常
+static int s_graphicsRefCount = 0;
+static void EnsureGraphicsInit(int width, int height)
+{
+    if (s_graphicsRefCount == 0) {
+        initgraph(width, height);
+    }
+    ++s_graphicsRefCount;
+}
+static void EnsureGraphicsClose()
+{
+    if (s_graphicsRefCount <= 0) return;
+    --s_graphicsRefCount;
+    if (s_graphicsRefCount == 0) {
+        closegraph();
+    }
+}
+
 // 颜色定义
 const COLORREF BACKGROUND_COLOR = RGB(240, 245, 250);
 const COLORREF NODE_COLOR = RGB(70, 130, 180);
@@ -438,7 +456,8 @@ public:
         isTransformed(false), transformMethod(0) {
         windowWidth = 1200;
         windowHeight = 800;
-        initgraph(windowWidth, windowHeight);
+        // 使用引用计数保证 initgraph/closegraph 配对
+        EnsureGraphicsInit(windowWidth, windowHeight);
         setbkcolor(BACKGROUND_COLOR);
         cleardevice();
 
@@ -451,10 +470,11 @@ public:
     }
 
     ~GraphVisualizer() {
-        closegraph();
+        
         delete originalGraph;
         // 删除当前图对象，GraphVisualizer 对传入的 graph 拥有所有权
         delete graph;
+        EnsureGraphicsClose();
     }
 
     void calculateNodePositions() {
@@ -991,7 +1011,7 @@ public:
     }
 
     ~GraphMainUI() {
-        closegraph();
+        EnsureGraphicsClose();
     }
 
     // 初始化一级界面按钮（三种创建方式+退出）

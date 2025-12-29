@@ -25,9 +25,8 @@ int main() {
         GraphVisualizer visualizer(graph);
         int status = visualizer.run(); // 运行二级界面，获取状态
 
-        // 释放资源
-        delete graph;
-        graph = nullptr;
+        // 注意：GraphVisualizer 的析构函数已负责释放 graph（拥有所有权），
+        // 因此此处不再重复 delete，防止 double-delete 导致异常。
 
         if (status == -1) { // 二级界面选择退出程序
             break;
