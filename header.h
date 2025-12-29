@@ -808,32 +808,40 @@ adj_graph* createGraphbyhand()
 {
     adj_graph* graph;
     int num;
-	cout << "input the vertex number:" << endl;
+	cout << "input the vertex number(>0):";
     while (true)
     {
         cin >> num;
-        if (!num)
+        if (!num||num<0)
         {
             cout << "invalid input, please input again" << endl;
             cin.clear();
-            cin.ignore(25565,'\n');
+            cin.ignore(65535,'\n');
+        }
+        else if (num > 50)
+        {
+			cout << "the vertex number is excessive (max:50), please input again" << endl;
         }
         else if (num > 0)
             break;
     }
     graph = new adj_graph(num);
-    cout << "input the edge(-1 -1 is end):" << endl;
     while (true)
     {
+        cout << "input the edge(-1 -1 is end):";
         int src, dest;
-        cin >> src >> dest;
+        if (!(cin >> src >> dest))
+        {
+            cout << "invalid input, please input again" << endl;
+            cin.clear();
+            cin.ignore(65535, '\n');
+            continue;
+        }
         if (src == -1 && dest == -1)
             break;
         if (src < 0 || dest < 0 || src >= num || dest >= num)
         {
-            cout << "invalid input, please input again" << endl;
-            cin.clear();
-            cin.ignore(25565, '\n');
+            cout << "invalid input (out of range), please input again" << endl;
             continue;
         }
         graph->add_edge(src, dest);
@@ -862,7 +870,7 @@ adj_graph* createRandomGraph()
 }
 
 int getNextValidNumber(ifstream& infile) {
-    string numStr; // 存储连续数字字符
+    string numStr;
     char ch;
     //跳过所有非数字字符
     while (true) {
